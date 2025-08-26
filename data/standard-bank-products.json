@@ -1,0 +1,102 @@
+[
+  {
+    "id": "sb_everyday_plus",
+    "name": "MyMo Plus Account",
+    "category": "Accounts",
+    "description": "Low-fee everyday transactional account with digital banking.",
+    "eligibility": "South African ID or passport, proof of residence.",
+    "feesNote": "Monthly fee applies; ATM and card fees may apply.",
+    "link": "https://www.standardbank.co.za/southafrica/personal/products-and-services/bank-with-us/bank-accounts/entry-level-accounts/mymo-plus-account",
+    "keywords": ["bank account", "debit card", "atm", "transactional"]
+  },
+  {
+    "id": "sb_savings_goal",
+    "name": "PureSave Account",
+    "category": "Savings",
+    "description": "Flexible savings with no monthly fee and competitive rates.",
+    "eligibility": "Valid SA ID or passport, Standard Bank account holder preferred.",
+    "feesNote": "No monthly fee; transaction fees may apply.",
+    "link": "https://www.standardbank.co.za/southafrica/personal/products-and-services/save-and-invest/savings-accounts/puresave-account",
+    "keywords": ["savings", "interest", "stash", "emergency fund"]
+  },
+  {
+    "id": "sb_personal_loan",
+    "name": "Personal Loan",
+    "category": "Loans",
+    "description": "Unsecured personal loans with fixed monthly repayments.",
+    "eligibility": "18+, income verification, credit assessment required.",
+    "feesNote": "Initiation and monthly service fees apply; interest varies.",
+    "link": "https://www.standardbank.co.za/southafrica/personal/products-and-services/borrow-for-your-needs/personal-loans/personal-loans",
+    "keywords": ["loan", "borrow", "credit"]
+  },
+  {
+    "id": "sb_home_loan",
+    "name": "Home Loan",
+    "category": "Home Loans",
+    "description": "Finance to purchase a home, with flexible terms.",
+    "eligibility": "18+, income verification, credit assessment.",
+    "feesNote": "Bond registration and service fees; interest rate subject to assessment.",
+    "link": "https://www.standardbank.co.za/southafrica/personal/products-and-services/borrow-for-your-needs/home-loans/home-loans",
+    "keywords": ["home", "mortgage", "bond", "property"]
+  },
+  {
+    "id": "sb_vehicle_finance",
+    "name": "Vehicle and Asset Finance",
+    "category": "Vehicle & Asset Finance",
+    "description": "Finance for vehicles and assets with flexible structures.",
+    "eligibility": "18+, income verification, credit assessment.",
+    "feesNote": "Initiation and monthly service fees apply.",
+    "link": "https://www.standardbank.co.za/southafrica/personal/products-and-services/borrow-for-your-needs/vehicle-and-asset-finance",
+    "keywords": ["car", "vehicle", "auto", "vaf"]
+  },
+  {
+    "id": "sb_student_loan",
+    "name": "Student Loan",
+    "category": "Student",
+    "description": "Finance for studies with flexible repayment options.",
+    "eligibility": "Proof of registration, surety may be required.",
+    "feesNote": "Interest and fees apply; terms vary.",
+    "link": "https://www.standardbank.co.za/southafrica/personal/products-and-services/borrow-for-your-needs/student-loans/student-loans",
+    "keywords": ["student", "study", "university", "college"]
+  },
+  {
+    "id": "sb_business_account",
+    "name": "Business Current Account",
+    "category": "Business",
+    "description": "Transactional account tailored for SMEs and merchants.",
+    "eligibility": "Business registration documents and KYC required.",
+    "feesNote": "Tiered fees; POS/merchant fees may apply.",
+    "link": "https://www.standardbank.co.za/southafrica/business/products-and-services/bank-with-us/business-accounts/business-current-account",
+    "keywords": ["business", "merchant", "pos", "sme", "startup"]
+  },
+  {
+    "id": "sb_forex_travel",
+    "name": "TravelWallet & Forex",
+    "category": "Foreign Exchange",
+    "description": "Foreign currency solutions for travel and international payments.",
+    "eligibility": "Exchange control compliance required.",
+    "feesNote": "FX margins and service fees apply.",
+    "link": "https://www.standardbank.co.za/southafrica/personal/products-and-services/bank-with-us/foreign-exchange",
+    "keywords": ["international", "forex", "overseas", "travel"]
+  },
+  {
+    "id": "sb_insurance_funeral",
+    "name": "Funeral Cover",
+    "category": "Insurance",
+    "description": "Funeral insurance with quick payouts and flexible cover options.",
+    "eligibility": "Age, health, and underwriting criteria apply.",
+    "feesNote": "Premiums based on cover and risk profile.",
+    "link": "https://www.standardbank.co.za/southafrica/personal/products-and-services/insure-your-life/our-products/funeral-cover",
+    "keywords": ["insurance", "funeral", "cover"]
+  },
+  {
+    "id": "sb_credit_cards",
+    "name": "Credit Cards Range",
+    "category": "Credit Cards",
+    "description": "Range of credit cards with rewards and flexible limits.",
+    "eligibility": "Income verification and credit assessment required.",
+    "feesNote": "Monthly and transaction fees apply.",
+    "link": "https://www.standardbank.co.za/southafrica/personal/products-and-services/bank-with-us/credit-cards",
+    "keywords": ["credit card", "card limit", "rewards"]
+  }
+]

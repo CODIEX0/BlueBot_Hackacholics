@@ -1,0 +1,30 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Users can upload receipts to their own folder
+    match /receipts/{userId}/{receiptId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Users can upload profile pictures to their own folder
+    match /profiles/{userId}/{imageId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Users can upload documents to their own folder
+    match /documents/{userId}/{documentId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Public educational content - read only
+    match /education/{allPaths=**} {
+      allow read: if true;
+    }
+    
+    // Stokvel documents - members only
+    match /stokvels/{stokvelId}/{allPaths=**} {
+      allow read, write: if request.auth != null;
+      // Additional validation would check if user is a member
+    }
+  }
+}

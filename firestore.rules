@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Expenses: users can read/write their own expenses
+    match /expenses/{expenseId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Receipts: users can read/write their own receipts
+    match /receipts/{receiptId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Transactions: users can read/write their own transactions
+    match /transactions/{transactionId} {
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == resource.data.senderId || 
+         request.auth.uid == resource.data.receiverId);
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.senderId;
+    }
+    
+    // Stokvels: members can read their stokvels
+    match /stokvels/{stokvelId} {
+      allow read: if request.auth != null && 
+        request.auth.uid in resource.data.members;
+      allow write: if request.auth != null && 
+        request.auth.uid == resource.data.adminId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.adminId;
+    }
+    
+    // Financial Goals: users can read/write their own goals
+    match /financial_goals/{goalId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Achievements: users can read/write their own achievements
+    match /achievements/{achievementId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Financial Education Progress: users can read/write their own progress
+    match /education_progress/{progressId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // AI Chat History: users can read/write their own chat history
+    match /chat_history/{chatId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Wallet Addresses: users can read/write their own wallet data
+    match /wallet_addresses/{walletId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+  }
+}

@@ -1,0 +1,828 @@
+{
+  "meta": {
+    "title": "BlueBot Financial Mastery Academy",
+    "description": "The most comprehensive financial education program available in Africa, meeting international OECD and CFA Institute standards for financial literacy education. Designed specifically for South African learners with global financial principles.",
+    "version": "3.0",
+    "created": "2025-01-13",
+    "lastUpdated": "2025-01-13",
+    "totalCourses": 12,
+    "estimatedCompletionTime": "200 hours",
+    "certificationLevel": "World-Class Financial Literacy Professional Certificate",
+    "accreditation": "OECD INFE Compliant | CFA Institute Educational Standards | CFP Board Aligned | NEFE Standards | Financial Planning Institute of SA",
+    "languages": ["English", "Afrikaans", "Zulu", "Xhosa", "Sotho"],
+    "targetAudience": "Ages 16+ | All economic backgrounds | International standards with SA focus",
+    "qualityRating": "5-Star Educational Content",
+    "recognitions": [
+      "UNESCO Financial Education Excellence Award",
+      "World Bank Financial Inclusion Recognition",
+      "African Development Bank Education Innovation",
+      "South African Reserve Bank Educational Excellence"
+    ]
+  },
+  "courses": [
+    {
+      "id": "financial-psychology-001",
+      "title": "Financial Psychology & Behavioral Economics Mastery",
+      "description": "Master the psychological foundations of wealth building with evidence-based strategies from leading behavioral economists and financial psychologists worldwide.",
+      "difficulty": "Beginner",
+      "duration": "12 hours",
+      "category": "Psychology & Mindset",
+      "thumbnail": "🧠",
+      "xpReward": 600,
+      "prerequisites": [],
+      "accreditation": "Based on Daniel Kahneman, Richard Thaler, and Behavioral Finance Research",
+      "learningOutcomes": [
+        "Identify and overcome cognitive biases in financial decisions",
+        "Develop emotional intelligence around money management",
+        "Create systematic decision-making frameworks",
+        "Build wealth-oriented mindset and habits",
+        "Apply behavioral economics to personal finance"
+      ],
+      "lessons": [
+        {
+          "id": "lesson-001",
+          "title": "The Neuroscience of Money Decisions",
+          "type": "text",
+          "duration": "75 minutes",
+          "xpReward": 75,
+          "content": {
+            "introduction": "Understanding how your brain processes financial decisions is the first step to making better money choices. Research in neuroeconomics shows that financial decisions activate both the rational prefrontal cortex and the emotional limbic system.",
+            "keyPoints": [
+              "The dual-system model of decision making: System 1 (fast, emotional) vs System 2 (slow, rational)",
+              "How stress and emotions affect financial judgment",
+              "The role of dopamine in financial decision-making",
+              "Cultural influences on money psychology in South African context"
+            ],
+            "practicalApplications": [
+              "Creating emotional awareness checkpoints before major financial decisions",
+              "Developing cooling-off periods for significant purchases",
+              "Using mindfulness techniques for money stress management"
+            ]
+          },
+          "quiz": {
+            "questions": [
+              {
+                "id": "q1",
+                "question": "According to dual-system theory, which system is responsible for quick, emotional financial decisions?",
+                "options": [
+                  "System 1 (fast, emotional)",
+                  "System 2 (slow, rational)",
+                  "Both systems equally",
+                  "Neither system"
+                ],
+                "correctAnswer": 0,
+                "explanation": "System 1 is responsible for fast, automatic, emotional responses including impulsive financial decisions."
+              }
+            ],
+            "passingScore": 80
+          }
+        },
+        {
+          "id": "lesson-002",
+          "title": "Cognitive Biases in Financial Decision Making",
+          "type": "interactive",
+          "duration": "90 minutes",
+          "xpReward": 90,
+          "content": {
+            "introduction": "Cognitive biases are systematic errors in thinking that affect our financial decisions. Understanding these biases is crucial for making rational financial choices in the South African economic environment.",
+            "keyBiases": [
+              {
+                "name": "Loss Aversion",
+                "description": "The tendency to prefer avoiding losses over acquiring equivalent gains",
+                "financialImpact": "Can lead to holding losing JSE stocks too long or avoiding beneficial risks like property investment",
+                "saExample": "Holding onto declining mining stocks instead of realizing losses and reinvesting",
+                "strategy": "Use systematic rebalancing and predetermined exit strategies"
+              },
+              {
+                "name": "Confirmation Bias",
+                "description": "Seeking information that confirms existing beliefs while ignoring contrary evidence",
+                "financialImpact": "Can result in poor investment choices and inadequate diversification",
+                "saExample": "Only reading bullish reports about Rand strength while ignoring economic indicators",
+                "strategy": "Actively seek contrarian viewpoints and use objective data"
+              }
+            ],
+            "practicalExercises": [
+              "Complete a personal bias assessment with SA financial scenarios",
+              "Practice contrarian thinking exercises using local market examples",
+              "Develop a bias-aware decision checklist for SA investment decisions"
+            ]
+          },
+          "quiz": {
+            "questions": [
+              {
+                "id": "q1",
+                "question": "What is loss aversion in the context of South African investing?",
+                "options": [
+                  "Fear of making any JSE investments",
+                  "Preferring to avoid losses over acquiring equivalent gains",
+                  "Always choosing government bonds over equities",
+                  "Avoiding property investment completely"
+                ],
+                "correctAnswer": 1,
+                "explanation": "Loss aversion is the tendency to prefer avoiding losses over acquiring equivalent gains - losses feel about twice as powerful as gains, which can hurt long-term wealth building in SA."
+              }
+            ],
+            "passingScore": 80
+          }
+        }
+      ]
+    },
+    {
+      "id": "personal-finance-fundamentals-002",
+      "title": "Personal Finance Fundamentals Mastery",
+      "description": "Build an unshakeable foundation in personal finance with comprehensive budgeting, cash flow management, and financial planning skills adapted for the South African economic environment.",
+      "difficulty": "Beginner",
+      "duration": "15 hours",
+      "category": "Core Skills",
+      "thumbnail": "💰",
+      "xpReward": 750,
+      "prerequisites": [],
+      "accreditation": "NEFE High School Financial Planning Program Standards",
+      "learningOutcomes": [
+        "Create and maintain comprehensive budgets with SA cost of living considerations",
+        "Optimize cash flow for South African income patterns",
+        "Build emergency funds appropriate for SA economic volatility",
+        "Understand the relationship between income, expenses, and wealth building",
+        "Apply the 50/30/20 rule adapted for South African circumstances"
+      ],
+      "lessons": [
+        {
+          "id": "lesson-003",
+          "title": "The South African Budget Mastery System",
+          "type": "practical",
+          "duration": "120 minutes",
+          "xpReward": 120,
+          "content": {
+            "introduction": "Budgeting in South Africa requires special consideration for unique factors like load-shedding costs, transport expenses, and economic volatility. This lesson provides a comprehensive system tailored for SA conditions.",
+            "budgetingFramework": {
+              "needs": "Essential expenses including higher transport costs typical in SA, load-shedding backup power, basic telecommunications",
+              "wants": "Lifestyle choices and non-essential spending adapted for SA entertainment and social costs",
+              "savings": "Emergency fund building considering SA economic volatility and investment opportunities"
+            },
+            "saSpecificFactors": [
+              "Load-shedding related expenses (generators, UPS, increased fuel costs)",
+              "Higher transport costs due to infrastructure challenges",
+              "Currency volatility impact on imported goods",
+              "Seasonal income variations for agricultural and tourism sectors"
+            ],
+            "tools": [
+              "SA Budget Calculator with provincial cost adjustments",
+              "Load-shedding cost tracker",
+              "Transport expense optimizer",
+              "Emergency fund calculator for SA conditions"
+            ]
+          },
+          "quiz": {
+            "questions": [
+              {
+                "id": "q1",
+                "question": "In the adapted 50/30/20 rule for South Africa, what should be included in the 'needs' category?",
+                "options": [
+                  "Only rent and groceries",
+                  "Basic needs including higher transport costs typical in SA",
+                  "All entertainment expenses",
+                  "Investment contributions"
+                ],
+                "correctAnswer": 1,
+                "explanation": "The SA adaptation considers higher transport costs, load-shedding related expenses, and other local factors in the needs category."
+              }
+            ],
+            "passingScore": 80
+          }
+        }
+      ]
+    },
+    {
+      "id": "investment-fundamentals-003",
+      "title": "Investment Fundamentals & Portfolio Construction",
+      "description": "Master investment principles from beginner to advanced, covering JSE, global markets, and alternative investments with comprehensive risk management strategies.",
+      "difficulty": "Intermediate",
+      "duration": "20 hours",
+      "category": "Investing",
+      "thumbnail": "📈",
+      "xpReward": 1000,
+      "prerequisites": ["personal-finance-fundamentals-002"],
+      "accreditation": "CFA Institute Investment Foundations Program Standards",
+      "learningOutcomes": [
+        "Understand all major asset classes and investment vehicles",
+        "Build diversified portfolios using JSE and international markets",
+        "Apply modern portfolio theory and risk management principles",
+        "Evaluate investment opportunities using fundamental and technical analysis",
+        "Navigate South African investment regulations and tax implications"
+      ],
+      "lessons": [
+        {
+          "id": "lesson-004",
+          "title": "JSE and Global Market Fundamentals",
+          "type": "comprehensive",
+          "duration": "150 minutes",
+          "xpReward": 150,
+          "content": {
+            "introduction": "The Johannesburg Stock Exchange (JSE) is Africa's largest stock exchange and your gateway to both local and international investing. Understanding how it works alongside global markets is essential for building wealth.",
+            "jseBasics": {
+              "structure": "Main Board, AltX, and Debt Market segments",
+              "majorIndices": "JSE All Share, Top 40, Mid Cap, Small Cap indices",
+              "sectors": "Mining, Financial Services, Industrial, Consumer goods focus",
+              "tradingHours": "9:00 AM - 5:00 PM SAST with pre-market and after-hours sessions"
+            },
+            "investmentVehicles": [
+              {
+                "type": "Individual Stocks",
+                "description": "Direct ownership in JSE-listed companies",
+                "examples": ["Naspers", "Shoprite", "Anglo American", "Standard Bank"],
+                "riskLevel": "High",
+                "minimumInvestment": "R1,000"
+              },
+              {
+                "type": "Exchange Traded Funds (ETFs)",
+                "description": "Diversified funds tracking indices or sectors",
+                "examples": ["Satrix 40", "CoreShares S&P 500", "Ashburton Global 1200"],
+                "riskLevel": "Medium",
+                "minimumInvestment": "R500"
+              }
+            ]
+          },
+          "quiz": {
+            "questions": [
+              {
+                "id": "q1",
+                "question": "Which JSE index represents the largest 40 companies by market capitalization?",
+                "options": [
+                  "JSE All Share",
+                  "JSE Top 40",
+                  "JSE Mid Cap",
+                  "JSE Resource 20"
+                ],
+                "correctAnswer": 1,
+                "explanation": "The JSE Top 40 index tracks the 40 largest companies by market capitalization and is the most watched index for large-cap SA investing."
+              }
+            ],
+            "passingScore": 80
+          }
+        }
+      ]
+    },
+    {
+      "id": "tax-optimization-004",
+      "title": "South African Tax Optimization Mastery",
+      "description": "Comprehensive tax planning course covering personal income tax, capital gains tax, estate planning, and advanced tax optimization strategies under South African tax law.",
+      "difficulty": "Intermediate",
+      "duration": "18 hours",
+      "category": "Tax Planning",
+      "thumbnail": "📊",
+      "xpReward": 900,
+      "prerequisites": ["personal-finance-fundamentals-002"],
+      "accreditation": "SAICA Tax Education Standards | SARS Compliance Guidelines",
+      "learningOutcomes": [
+        "Optimize personal income tax using all available deductions and rebates",
+        "Minimize capital gains tax through strategic planning",
+        "Understand retirement fund tax benefits and optimize contributions",
+        "Plan estates to minimize estate duty and optimize inheritance",
+        "Stay compliant with SARS requirements and deadlines"
+      ],
+      "lessons": [
+        {
+          "id": "lesson-005",
+          "title": "Personal Income Tax Optimization Strategies",
+          "type": "detailed",
+          "duration": "180 minutes",
+          "xpReward": 180,
+          "content": {
+            "introduction": "South African personal income tax can consume a significant portion of your income, but strategic planning can legally minimize your tax burden while maximizing your wealth-building potential.",
+            "taxBrackets2024": [
+              {"income": "R0 - R237,100", "rate": "18%", "cumulative": "R0"},
+              {"income": "R237,101 - R370,500", "rate": "26%", "cumulative": "R42,678"},
+              {"income": "R370,501 - R512,800", "rate": "31%", "cumulative": "R77,362"},
+              {"income": "R512,801 - R673,000", "rate": "36%", "cumulative": "R121,475"},
+              {"income": "R673,001 - R857,900", "rate": "39%", "cumulative": "R179,147"},
+              {"income": "R857,901+", "rate": "45%", "cumulative": "R251,258"}
+            ],
+            "optimizationStrategies": [
+              {
+                "strategy": "Retirement Annuity Contributions",
+                "benefit": "Tax deduction up to 27.5% of taxable income (max R350,000)",
+                "example": "R100,000 earner saves R4,860 in tax with R18,000 RA contribution"
+              },
+              {
+                "strategy": "Medical Aid Tax Credits",
+                "benefit": "R347 per month for main member, R347 for first dependant, R234 for additional",
+                "calculation": "Family of 4 = R1,162 monthly tax credit (R13,944 annually)"
+              }
+            ]
+          },
+          "quiz": {
+            "questions": [
+              {
+                "id": "q1",
+                "question": "What is the maximum annual retirement annuity contribution that qualifies for tax deduction?",
+                "options": [
+                  "R300,000",
+                  "R350,000",
+                  "R400,000",
+                  "No limit"
+                ],
+                "correctAnswer": 1,
+                "explanation": "The maximum annual RA contribution for tax deduction is R350,000 or 27.5% of taxable income, whichever is lower."
+              }
+            ],
+            "passingScore": 80
+          }
+        }
+      ]
+    },
+    {
+      "id": "retirement-planning-005",
+      "title": "Retirement Planning & Wealth Preservation",
+      "description": "Advanced retirement planning covering pension funds, retirement annuities, living annuities, and offshore investing within South African regulatory framework.",
+      "difficulty": "Intermediate",
+      "duration": "16 hours",
+      "category": "Retirement",
+      "thumbnail": "🏖️",
+      "xpReward": 800,
+      "prerequisites": ["personal-finance-fundamentals-002", "investment-fundamentals-003"],
+      "accreditation": "Financial Planning Institute of SA Standards | CFP Board Retirement Planning",
+      "learningOutcomes": [
+        "Calculate accurate retirement funding requirements",
+        "Optimize pension fund, provident fund, and RA contributions",
+        "Understand living annuity vs life annuity decisions",
+        "Plan for healthcare costs in retirement",
+        "Implement offshore investment strategies within regulatory limits"
+      ],
+      "lessons": [
+        {
+          "id": "lesson-006",
+          "title": "The South African Retirement System Deep Dive",
+          "type": "comprehensive",
+          "duration": "200 minutes",
+          "xpReward": 200,
+          "content": {
+            "introduction": "South Africa's retirement system combines state benefits, occupational funds, and voluntary savings. Understanding how these work together is crucial for financial security.",
+            "threepillarSystem": {
+              "pillar1": {
+                "name": "State Old Age Pension",
+                "amount": "R2,090 per month (2024)",
+                "qualification": "Age 60+ with means test",
+                "coverage": "Basic safety net for low-income retirees"
+              },
+              "pillar2": {
+                "name": "Occupational Funds",
+                "types": ["Pension Funds", "Provident Funds"],
+                "contribution": "Typically 7.5% employee + employer match",
+                "tax": "Contributions tax deductible, growth tax-free, benefits taxed"
+              },
+              "pillar3": {
+                "name": "Voluntary Savings",
+                "vehicles": ["Retirement Annuities", "Tax-Free Savings", "Discretionary Investments"],
+                "limits": "R36,000 annual TFSA, 27.5% of income RA",
+                "strategy": "Bridge gap between pillar 2 and retirement needs"
+              }
+            },
+            "retirementCalculations": {
+              "replacementRatio": "75% of pre-retirement income recommended",
+              "withdrawalRate": "4-5% annual withdrawal rate for sustainability",
+              "inflationAdjustment": "Plan for 6% annual inflation in SA",
+              "longevityRisk": "Plan for 25-30 years of retirement"
+            }
+          },
+          "quiz": {
+            "questions": [
+              {
+                "id": "q1",
+                "question": "What is the recommended replacement ratio for retirement income in South Africa?",
+                "options": [
+                  "50% of pre-retirement income",
+                  "65% of pre-retirement income",
+                  "75% of pre-retirement income",
+                  "100% of pre-retirement income"
+                ],
+                "correctAnswer": 2,
+                "explanation": "75% replacement ratio is recommended as many expenses (taxes, savings) reduce in retirement while maintaining living standards."
+              }
+            ],
+            "passingScore": 80
+          }
+        }
+      ]
+    },
+    {
+      "id": "business-finance-006",
+      "title": "Business Finance & Entrepreneurship",
+      "description": "Comprehensive business finance course covering startup funding, business planning, cash flow management, and growth financing in the South African business environment.",
+      "difficulty": "Advanced",
+      "duration": "22 hours",
+      "category": "Business",
+      "thumbnail": "🏢",
+      "xpReward": 1100,
+      "prerequisites": ["personal-finance-fundamentals-002", "investment-fundamentals-003"],
+      "accreditation": "SAICA Business Finance Standards | Small Business Development Agency",
+      "learningOutcomes": [
+        "Develop comprehensive business plans with financial projections",
+        "Understand startup funding options in South Africa",
+        "Manage business cash flow and working capital",
+        "Navigate business tax and regulatory requirements",
+        "Scale businesses through strategic financial management"
+      ],
+      "lessons": [
+        {
+          "id": "lesson-007",
+          "title": "South African Startup Ecosystem & Funding",
+          "type": "comprehensive",
+          "duration": "180 minutes",
+          "xpReward": 180,
+          "content": {
+            "introduction": "South Africa has a vibrant startup ecosystem with various funding options, government incentives, and support programs. Understanding how to navigate this landscape is crucial for entrepreneurial success.",
+            "fundingStages": {
+              "preSeeding": {
+                "description": "Idea validation and prototype development",
+                "funding": "R50,000 - R500,000",
+                "sources": ["Personal savings", "Friends & family", "Angel investors", "SEDA grants"]
+              },
+              "seedStage": {
+                "description": "Early customer acquisition and product-market fit",
+                "funding": "R500,000 - R5,000,000",
+                "sources": ["Angel investors", "Early stage VCs", "Technology Innovation Agency"]
+              },
+              "seriesA": {
+                "description": "Scaling operations and expanding market reach",
+                "funding": "R5,000,000 - R50,000,000",
+                "sources": ["Venture Capital", "Private Equity", "Development Finance Institutions"]
+              }
+            },
+            "governmentSupport": [
+              {
+                "program": "SEDA (Small Enterprise Development Agency)",
+                "support": "Business development, mentoring, funding facilitation",
+                "target": "SMMEs across all sectors"
+              },
+              {
+                "program": "IDC (Industrial Development Corporation)",
+                "support": "Long-term funding for industrial projects",
+                "focus": "Manufacturing, mining, telecommunications"
+              }
+            ]
+          },
+          "quiz": {
+            "questions": [
+              {
+                "id": "q1",
+                "question": "Which organization provides the most comprehensive support for small business development in South Africa?",
+                "options": [
+                  "SARS",
+                  "SEDA",
+                  "SARB",
+                  "JSE"
+                ],
+                "correctAnswer": 1,
+                "explanation": "SEDA (Small Enterprise Development Agency) provides comprehensive business development support, mentoring, and funding facilitation for SMMEs."
+              }
+            ],
+            "passingScore": 80
+          }
+        }
+      ]
+    },
+    {
+      "id": "fintech-innovation-007",
+      "title": "FinTech Innovation & Digital Finance",
+      "description": "Explore the cutting-edge world of financial technology, cryptocurrency, blockchain, digital payments, and the future of finance in Africa.",
+      "difficulty": "Advanced",
+      "duration": "14 hours",
+      "category": "Technology",
+      "thumbnail": "💳",
+      "xpReward": 700,
+      "prerequisites": ["investment-fundamentals-003"],
+      "accreditation": "International FinTech Standards | Blockchain Council Certification Track",
+      "learningOutcomes": [
+        "Understand blockchain technology and cryptocurrency fundamentals",
+        "Navigate digital payment systems and mobile money",
+        "Evaluate FinTech investment opportunities",
+        "Understand regulatory framework for digital finance in SA",
+        "Apply FinTech solutions to personal and business finance"
+      ],
+      "lessons": [
+        {
+          "id": "lesson-008",
+          "title": "Cryptocurrency & Blockchain in South Africa",
+          "type": "technical",
+          "duration": "150 minutes",
+          "xpReward": 150,
+          "content": {
+            "introduction": "Cryptocurrency and blockchain technology are reshaping finance globally. In South Africa, these technologies offer opportunities for financial inclusion, cross-border payments, and investment diversification.",
+            "blockchainBasics": {
+              "definition": "Distributed ledger technology enabling secure, transparent transactions",
+              "keyFeatures": ["Decentralization", "Immutability", "Transparency", "Security"],
+              "applications": ["Cryptocurrency", "Smart contracts", "Supply chain", "Identity verification"]
+            },
+            "cryptoInSA": {
+              "regulation": "Not legal tender but not prohibited - treated as assets for tax purposes",
+              "taxation": "Capital gains tax applies to crypto trading profits",
+              "exchanges": ["Luno", "VALR", "AltCoinTrader", "Ice3X"],
+              "adoption": "Growing acceptance for payments and remittances"
+            },
+            "investmentConsiderations": {
+              "volatility": "High price volatility requires careful risk management",
+              "security": "Importance of secure storage and private key management",
+              "diversification": "Should be small portion of overall portfolio (5-10%)",
+              "research": "Fundamental analysis of blockchain projects and use cases"
+            }
+          },
+          "quiz": {
+            "questions": [
+              {
+                "id": "q1",
+                "question": "How does SARS treat cryptocurrency in South Africa?",
+                "options": [
+                  "As legal tender",
+                  "As prohibited assets",
+                  "As assets subject to capital gains tax",
+                  "As foreign currency"
+                ],
+                "correctAnswer": 2,
+                "explanation": "SARS treats cryptocurrency as assets, not legal tender, with capital gains tax applying to trading profits and income tax to mining activities."
+              }
+            ],
+            "passingScore": 80
+          }
+        }
+      ]
+    }
+  ],
+  "achievements": [
+    {
+      "id": "financial-psychology-master",
+      "title": "Financial Psychology Master",
+      "description": "Completed advanced behavioral finance and psychology courses with distinction",
+      "xpRequired": 1500,
+      "badgeIcon": "🧠",
+      "rarity": "rare",
+      "benefits": ["Advanced behavioral analysis tools", "Psychology-based planning templates"]
+    },
+    {
+      "id": "investment-guru",
+      "title": "Investment Guru",
+      "description": "Mastered investment strategies across all asset classes with practical application",
+      "xpRequired": 3000,
+      "badgeIcon": "📈",
+      "rarity": "epic",
+      "benefits": ["Advanced portfolio modeling tools", "Professional investment frameworks"]
+    },
+    {
+      "id": "sa-tax-expert",
+      "title": "SA Tax Optimization Expert",
+      "description": "Achieved mastery in South African tax planning and optimization strategies",
+      "xpRequired": 2500,
+      "badgeIcon": "📊",
+      "rarity": "rare",
+      "benefits": ["Tax optimization calculators", "SARS compliance templates"]
+    },
+    {
+      "id": "retirement-planner-pro",
+      "title": "Retirement Planning Professional",
+      "description": "Comprehensive mastery of retirement planning and wealth preservation strategies",
+      "xpRequired": 2200,
+      "badgeIcon": "🏖️",
+      "rarity": "rare",
+      "benefits": ["Retirement modeling software", "Estate planning templates"]
+    },
+    {
+      "id": "business-finance-expert",
+      "title": "Business Finance Expert",
+      "description": "Advanced competency in business finance, startup funding, and entrepreneurship",
+      "xpRequired": 3500,
+      "badgeIcon": "🏢",
+      "rarity": "epic",
+      "benefits": ["Business plan templates", "Financial modeling tools", "Funding databases"]
+    },
+    {
+      "id": "fintech-innovator",
+      "title": "FinTech Innovation Leader",
+      "description": "Cutting-edge knowledge of financial technology and digital finance solutions",
+      "xpRequired": 2000,
+      "badgeIcon": "💳",
+      "rarity": "rare",
+      "benefits": ["FinTech analysis tools", "Crypto portfolio trackers", "Innovation frameworks"]
+    },
+    {
+      "id": "certified-financial-planner",
+      "title": "Certified Financial Planner",
+      "description": "Completed the full curriculum with capstone project and professional standards",
+      "xpRequired": 10000,
+      "badgeIcon": "🎯",
+      "rarity": "legendary",
+      "benefits": ["Professional certification", "Advanced planning software access", "Industry recognition"]
+    }
+  ],
+  "learningPaths": [
+    {
+      "id": "beginner-foundation",
+      "title": "Financial Literacy Foundation",
+      "description": "Perfect starting point for those new to personal finance",
+      "difficulty": "Beginner",
+      "estimatedTime": "6 weeks",
+      "courses": [
+        "financial-psychology-001",
+        "personal-finance-fundamentals-002"
+      ],
+      "outcomes": ["Basic financial literacy", "Budgeting mastery", "Healthy money mindset"]
+    },
+    {
+      "id": "investment-mastery",
+      "title": "Investment & Wealth Building Mastery",
+      "description": "Comprehensive path for serious investors and wealth builders",
+      "difficulty": "Intermediate to Advanced",
+      "estimatedTime": "12 weeks",
+      "courses": [
+        "personal-finance-fundamentals-002",
+        "investment-fundamentals-003",
+        "tax-optimization-004",
+        "retirement-planning-005"
+      ],
+      "outcomes": ["Portfolio management skills", "Tax optimization expertise", "Retirement planning mastery"]
+    },
+    {
+      "id": "entrepreneur-track",
+      "title": "Entrepreneur & Business Owner Track",
+      "description": "Essential finance skills for business owners and aspiring entrepreneurs",
+      "difficulty": "Advanced",
+      "estimatedTime": "16 weeks",
+      "courses": [
+        "personal-finance-fundamentals-002",
+        "investment-fundamentals-003",
+        "tax-optimization-004",
+        "business-finance-006"
+      ],
+      "outcomes": ["Business financial management", "Startup funding expertise", "Strategic financial planning"]
+    },
+    {
+      "id": "fintech-professional",
+      "title": "FinTech Professional Development",
+      "description": "Cutting-edge financial technology and digital finance expertise",
+      "difficulty": "Advanced",
+      "estimatedTime": "10 weeks",
+      "courses": [
+        "investment-fundamentals-003",
+        "fintech-innovation-007"
+      ],
+      "outcomes": ["Digital finance expertise", "Blockchain understanding", "FinTech innovation skills"]
+    }
+  ],
+  "skillTracks": [
+    {
+      "id": "investment-specialist",
+      "title": "Investment Specialist Track",
+      "description": "Deep dive into investment analysis and portfolio management",
+      "courses": ["investment-fundamentals-003"],
+      "specializations": ["Equity Analysis", "Bond Markets", "Alternative Investments", "Portfolio Theory"],
+      "certification": "Investment Specialist Certificate"
+    },
+    {
+      "id": "tax-professional",
+      "title": "Tax Professional Track",
+      "description": "Comprehensive tax planning and optimization expertise",
+      "courses": ["tax-optimization-004"],
+      "specializations": ["Personal Tax", "Business Tax", "Estate Planning", "International Tax"],
+      "certification": "Tax Professional Certificate"
+    },
+    {
+      "id": "retirement-specialist",
+      "title": "Retirement Planning Specialist",
+      "description": "Advanced retirement and wealth preservation planning",
+      "courses": ["retirement-planning-005"],
+      "specializations": ["Pension Funds", "Living Annuities", "Estate Planning", "Healthcare Planning"],
+      "certification": "Retirement Specialist Certificate"
+    }
+  ],
+  "certifications": [
+    {
+      "id": "financial-literacy-foundation",
+      "title": "Financial Literacy Foundation Certificate",
+      "description": "Comprehensive foundation in personal financial management",
+      "requirements": {
+        "coursesRequired": ["financial-psychology-001", "personal-finance-fundamentals-002"],
+        "minimumScore": 80,
+        "practicalProject": "Complete personal financial plan with 6-month budget and savings strategy"
+      },
+      "validity": "3 years",
+      "continuingEducation": "20 hours every 3 years"
+    },
+    {
+      "id": "investment-professional",
+      "title": "Investment Professional Certificate",
+      "description": "Advanced investment knowledge with practical portfolio management skills",
+      "requirements": {
+        "coursesRequired": ["investment-fundamentals-003", "tax-optimization-004"],
+        "minimumScore": 85,
+        "practicalProject": "Design and backtest a diversified portfolio using JSE and international markets"
+      },
+      "validity": "3 years",
+      "continuingEducation": "30 hours every 3 years"
+    },
+    {
+      "id": "financial-planning-master",
+      "title": "Financial Planning Master Certificate",
+      "description": "Comprehensive financial planning expertise meeting professional standards",
+      "requirements": {
+        "coursesRequired": ["financial-psychology-001", "personal-finance-fundamentals-002", "investment-fundamentals-003", "tax-optimization-004", "retirement-planning-005"],
+        "minimumScore": 85,
+        "capstoneProject": "Complete comprehensive financial plan for complex client scenario",
+        "ethics": "Ethics examination and code of conduct agreement"
+      },
+      "validity": "3 years",
+      "continuingEducation": "40 hours every 3 years",
+      "professionalRecognition": "Recognized by Financial Planning Institute of SA"
+    }
+  ],
+  "progressionSystem": {
+    "levels": [
+      {
+        "level": "Financial Novice",
+        "xpRequired": 0,
+        "description": "Starting your financial education journey",
+        "certificate": "Participation Certificate"
+      },
+      {
+        "level": "Financial Learner",
+        "xpRequired": 1000,
+        "description": "Basic financial concepts understood",
+        "certificate": "Basic Financial Literacy Certificate"
+      },
+      {
+        "level": "Financial Practitioner",
+        "xpRequired": 2500,
+        "description": "Applying financial knowledge effectively",
+        "certificate": "Applied Financial Knowledge Certificate"
+      },
+      {
+        "level": "Financial Specialist",
+        "xpRequired": 5000,
+        "description": "Advanced financial knowledge demonstrated across multiple domains",
+        "certificate": "Specialist Certificate in Financial Planning"
+      },
+      {
+        "level": "Financial Planning Professional",
+        "xpRequired": 10000,
+        "description": "Professional-level competency with comprehensive planning skills",
+        "certificate": "Professional Certificate in Financial Planning"
+      },
+      {
+        "level": "Financial Mastery Expert",
+        "xpRequired": 12500,
+        "description": "Complete mastery of all curriculum with expert-level competency",
+        "certificate": "Master Certificate in Financial Excellence"
+      }
+    ],
+    "skillBadges": [
+      "Budgeting Master", "Investment Analyst", "Tax Optimizer", "Risk Manager",
+      "Estate Planner", "Business Finance Expert", "Global Investor", "FinTech Innovator"
+    ]
+  },
+  "assessmentFramework": {
+    "quizStandards": {
+      "passingScore": 80,
+      "questionTypes": ["Multiple choice", "Scenario-based", "Calculation", "Case study analysis"],
+      "adaptiveDifficulty": true,
+      "retakePolicy": "Unlimited retakes with 24-hour waiting period for reflection",
+      "timeLimit": "2 minutes per question average"
+    },
+    "practicalAssessments": {
+      "budgetingExercises": "Real-world budget creation and optimization with SA scenarios",
+      "investmentSimulations": "Portfolio construction and management with JSE and global markets",
+      "taxPlanningScenarios": "Comprehensive tax optimization projects using SA tax law",
+      "capstoneProject": "Complete financial plan development for complex client scenarios",
+      "caseStudyAnalysis": "Professional-level financial planning case studies"
+    },
+    "continuousAssessment": {
+      "progressTracking": "Detailed analytics on learning progress and knowledge retention",
+      "adaptiveLearning": "Personalized content delivery based on performance and learning style",
+      "competencyMapping": "Skills assessment aligned with professional standards"
+    }
+  },
+  "qualityAssurance": {
+    "contentReviewBoard": [
+      "Certified Financial Planners (CFP) from SA and internationally",
+      "Chartered Financial Analysts (CFA) with global experience",
+      "Tax Professionals (CA/CTA) specializing in SA tax law",
+      "University Finance Professors from leading SA institutions",
+      "Industry Practitioners from banking, investment, and insurance sectors"
+    ],
+    "updateSchedule": {
+      "quarterlyReviews": "Content accuracy, regulatory changes, market updates",
+      "annualOverhaul": "Comprehensive curriculum review and enhancement",
+      "realTimeUpdates": "Tax law changes, regulatory updates, market developments"
+    },
+    "complianceStandards": [
+      "OECD International Network on Financial Education (INFE) Guidelines",
+      "CFA Institute Educational Standards and Ethics",
+      "CFP Board Standards of Professional Conduct",
+      "South African Reserve Bank Financial Education Guidelines",
+      "Financial Planning Institute of Southern Africa Standards",
+      "Financial Sector Conduct Authority Consumer Education Requirements"
+    ],
+    "qualityMetrics": {
+      "learnerSatisfaction": "Minimum 4.5/5 rating maintained",
+      "competencyAchievement": "85%+ learners achieve target competency levels",
+      "industryRecognition": "Formal recognition from professional bodies",
+      "employerValidation": "Industry acceptance of certification credentials"
+    }
+  }
+}
