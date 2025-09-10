@@ -41,6 +41,39 @@ declare module "expo-speech" {
   export function getAvailableVoicesAsync(): Promise<any[]>;
 }
 
+declare module "@react-native-community/voice" {
+  export interface SpeechResultsEvent {
+    value?: string[];
+  }
+  
+  export interface SpeechErrorEvent {
+    error?: {
+      message?: string;
+      code?: string;
+    };
+  }
+  
+  export interface VoiceModule {
+    start(language?: string): Promise<void>;
+    stop(): Promise<void>;
+    cancel(): Promise<void>;
+    destroy(): Promise<void>;
+    isAvailable(): Promise<boolean>;
+    isRecognizing(): Promise<boolean>;
+    removeAllListeners(): void;
+    onSpeechStart?: (e: any) => void;
+    onSpeechRecognized?: (e: any) => void;
+    onSpeechEnd?: (e: any) => void;
+    onSpeechError?: (e: SpeechErrorEvent) => void;
+    onSpeechResults?: (e: SpeechResultsEvent) => void;
+    onSpeechPartialResults?: (e: SpeechResultsEvent) => void;
+    onSpeechVolumeChanged?: (e: any) => void;
+  }
+  
+  const Voice: VoiceModule;
+  export default Voice;
+}
+
 declare module "react-native-voice" {
   export interface VoiceModule {
     start(language?: string): Promise<void>;
@@ -141,6 +174,13 @@ declare module "react-native" {
     thumbColor?: string;
     style?: any;
   }>;
+  
+  export const Share: {
+    share: (
+      content: { message?: string; url?: string; title?: string },
+      options?: { subject?: string; dialogTitle?: string }
+    ) => Promise<{ action: string; activityType?: string }>
+  };
   
   // Re-export commonly used components
   export const View: ComponentType<any>;

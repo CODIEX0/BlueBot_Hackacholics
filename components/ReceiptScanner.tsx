@@ -22,7 +22,8 @@ import {
   Upload,
 } from 'lucide-react-native';
 import ReceiptOCR from '../services/receiptOCR_Production';
-import { useMobileDatabase } from '../contexts/MobileDatabaseContext';
+import { useAWS } from '../contexts/AWSContext';
+import { theme } from '@/config/theme';
 
 interface ReceiptScannerProps {
   visible: boolean;
@@ -47,14 +48,49 @@ export default function ReceiptScanner({
   onClose, 
   onReceiptProcessed 
 }: ReceiptScannerProps) {
-  const [permission, requestPermission] = Camera.useCameraPermissions();
+  // Manual permission state to be compatible across Expo Camera versions
+  const [permission, setPermission] = useState<{ granted: boolean; status?: string } | null>(null);
+  const requestPermission = useCallback(async () => {
+    try {
+      const res = await Camera.requestCameraPermissionsAsync();
+      setPermission({ granted: res.granted, status: res.status });
+    } catch (e) {
+      console.warn('Camera permission request failed:', e);
+      setPermission({ granted: false, status: 'denied' });
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await Camera.getCameraPermissionsAsync();
+        if (!mounted) return;
+        setPermission({ granted: !!res.granted, status: res.status });
+        // Optionally, request immediately when modal opens and not granted
+        if (visible && !res.granted && res.canAskAgain) {
+          const req = await Camera.requestCameraPermissionsAsync();
+          if (!mounted) return;
+          setPermission({ granted: req.granted, status: req.status });
+        }
+      } catch (e) {
+        console.warn('Camera permission check failed:', e);
+        if (mounted) setPermission({ granted: false, status: 'undetermined' });
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [visible]);
   const [mode, setMode] = useState<'camera' | 'gallery' | 'result'>('camera');
   const [isProcessing, setIsProcessing] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [scannedReceipt, setScannedReceipt] = useState<ScannedReceipt | null>(null);
   const cameraRef = useRef<typeof Camera>(null);
   const receiptOCR = ReceiptOCR;
-  const { addExpense } = useMobileDatabase();
+  // AWS Context with fallback to demo mode
+  const aws = useAWS();
+  const { isInitialized, processReceipt, createExpense } = aws || {};
 
   const handleTakePicture = async () => {
     if (!cameraRef.current) return;
@@ -126,20 +162,25 @@ export default function ReceiptScanner({
     if (!scannedReceipt) return;
 
     try {
-      // Add main expense
-      await addExpense({
-        amount: scannedReceipt.total,
-        category: scannedReceipt.category,
-        merchant: scannedReceipt.merchant,
-        date: scannedReceipt.date,
-        description: `Receipt from ${scannedReceipt.merchant}`,
-        isRecurring: false,
-      });
+      if (isInitialized && processReceipt) {
+        // Run full pipeline: S3 upload + Textract + expense creation
+        await processReceipt(capturedImage || '');
+      } else {
+        // Demo fallback: just create a local expense without S3
+        await createExpense?.({
+          amount: scannedReceipt.total,
+          category: scannedReceipt.category,
+          merchant: scannedReceipt.merchant,
+          date: scannedReceipt.date,
+          description: `Receipt from ${scannedReceipt.merchant}`,
+          isRecurring: false,
+        });
+      }
 
       // Notify parent component
       onReceiptProcessed?.(scannedReceipt);
       
-      Alert.alert('Success', 'Receipt saved successfully!');
+  Alert.alert('Success', 'Receipt saved successfully!');
       handleClose();
     } catch (error) {
       console.error('Error saving receipt:', error);
@@ -168,7 +209,7 @@ export default function ReceiptScanner({
     return (
       <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
         <View style={styles.permissionContainer}>
-          <CameraIcon size={64} color="#64748B" />
+          <CameraIcon size={64} color={theme.colors.muted} />
           <Text style={styles.permissionTitle}>Camera Permission Required</Text>
           <Text style={styles.permissionText}>
             We need access to your camera to scan receipts and automatically track your expenses.
@@ -190,7 +231,7 @@ export default function ReceiptScanner({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.headerButton} onPress={handleClose}>
-            <X size={24} color="#FFFFFF" />
+            <X size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
             {mode === 'camera' ? 'Scan Receipt' : 
@@ -220,7 +261,7 @@ export default function ReceiptScanner({
                 style={styles.controlButton}
                 onPress={handlePickFromGallery}
               >
-                <ImageIcon size={24} color="#FFFFFF" />
+                <ImageIcon size={24} color={theme.colors.text} />
                 <Text style={styles.controlButtonText}>Gallery</Text>
               </TouchableOpacity>
 
@@ -240,7 +281,7 @@ export default function ReceiptScanner({
           <ScrollView style={styles.resultContainer}>
             {isProcessing ? (
               <View style={styles.processingContainer}>
-                <ActivityIndicator size="large" color="#1E3A8A" />
+                <ActivityIndicator size="large" color={theme.colors.primary} />
                 <Text style={styles.processingText}>Processing receipt...</Text>
                 <Text style={styles.processingSubtext}>
                   This may take a few seconds
@@ -297,7 +338,7 @@ export default function ReceiptScanner({
                     style={styles.retakeButton}
                     onPress={handleRetake}
                   >
-                    <RefreshCw size={20} color="#64748B" />
+                    <RefreshCw size={20} color={theme.colors.muted} />
                     <Text style={styles.retakeButtonText}>Retake</Text>
                   </TouchableOpacity>
 
@@ -306,7 +347,7 @@ export default function ReceiptScanner({
                     onPress={handleSaveReceipt}
                     disabled={!scannedReceipt}
                   >
-                    <Check size={20} color="#FFFFFF" />
+                    <Check size={20} color={theme.colors.text} />
                     <Text style={styles.saveButtonText}>Save Receipt</Text>
                   </TouchableOpacity>
                 </View>
@@ -322,7 +363,7 @@ export default function ReceiptScanner({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -331,7 +372,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: theme.colors.card,
   },
   headerButton: {
     width: 40,
@@ -342,7 +383,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.text,
   },
   camera: {
     flex: 1,
@@ -351,22 +392,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: theme.colors.glass,
   },
   scanFrame: {
     width: 280,
     height: 400,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.border,
     borderRadius: 12,
     backgroundColor: 'transparent',
   },
   scanInstruction: {
-    color: '#FFFFFF',
+    color: theme.colors.text,
     fontSize: 16,
     textAlign: 'center',
     marginTop: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: theme.colors.glass,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -377,14 +418,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 40,
     paddingVertical: 30,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: theme.colors.card,
   },
   controlButton: {
     alignItems: 'center',
     width: 60,
   },
   controlButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.text,
     fontSize: 12,
     marginTop: 4,
   },
@@ -392,7 +433,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -400,11 +441,11 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#1E3A8A',
+    backgroundColor: theme.colors.primary,
   },
   resultContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.colors.background,
   },
   processingContainer: {
     flex: 1,
@@ -415,12 +456,12 @@ const styles = StyleSheet.create({
   processingText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E3A8A',
+    color: theme.colors.primary,
     marginTop: 16,
   },
   processingSubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.colors.muted,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -435,7 +476,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E3A8A',
+    color: theme.colors.primary,
     marginBottom: 16,
     marginTop: 16,
   },
@@ -445,16 +486,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.colors.border,
   },
   detailLabel: {
     fontSize: 16,
-    color: '#64748B',
+    color: theme.colors.muted,
   },
   detailValue: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1E3A8A',
+    color: theme.colors.primary,
   },
   itemRow: {
     flexDirection: 'row',
@@ -465,12 +506,12 @@ const styles = StyleSheet.create({
   itemName: {
     flex: 1,
     fontSize: 14,
-    color: '#374151',
+    color: theme.colors.text,
   },
   itemPrice: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1E3A8A',
+    color: theme.colors.primary,
   },
   resultActions: {
     flexDirection: 'row',
@@ -482,7 +523,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.colors.cardAlt,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
@@ -490,14 +531,14 @@ const styles = StyleSheet.create({
   retakeButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#64748B',
+    color: theme.colors.muted,
   },
   saveButton: {
     flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E3A8A',
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
@@ -505,31 +546,31 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.text,
   },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.colors.background,
   },
   permissionTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#1E3A8A',
+    color: theme.colors.primary,
     marginTop: 24,
     textAlign: 'center',
   },
   permissionText: {
     fontSize: 16,
-    color: '#64748B',
+    color: theme.colors.muted,
     textAlign: 'center',
     marginTop: 16,
     lineHeight: 24,
   },
   permissionButton: {
-    backgroundColor: '#1E3A8A',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
@@ -538,14 +579,11 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  closeButton: {
-    marginTop: 16,
+    color: theme.colors.text,
   },
   closeButtonText: {
     fontSize: 16,
-    color: '#64748B',
+    color: theme.colors.muted,
   },
 });
 

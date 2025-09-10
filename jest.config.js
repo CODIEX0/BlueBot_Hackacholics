@@ -20,7 +20,7 @@ module.exports = {
     '^.+\\.(ts|tsx)$': 'ts-jest',
   },
   
-  // TypeScript configuration for ts-jest
+  // TypeScript configuration for ts-jest and global flags
   globals: {
     'ts-jest': {
       useESM: false,
@@ -28,7 +28,8 @@ module.exports = {
         moduleResolution: 'node',
         types: ['jest', 'node']
       }
-    }
+    },
+    __DEV__: true,
   },
   
   // Test match patterns
@@ -66,18 +67,7 @@ module.exports = {
       lines: 95,
       statements: 95,
     },
-    'services/cryptoWallet_Production.ts': {
-      branches: 95,
-      functions: 95,
-      lines: 95,
-      statements: 95,
-    },
-    'services/QRPaymentService_Production.ts': {
-      branches: 95,
-      functions: 95,
-      lines: 95,
-      statements: 95,
-    },
+    
   },
   
   // Coverage reporters
@@ -97,15 +87,11 @@ module.exports = {
     '^@contexts/(.*)$': '<rootDir>/contexts/$1',
     '^@utils/(.*)$': '<rootDir>/utils/$1',
     '^@types/(.*)$': '<rootDir>/types/$1',
+  // Map Expo native ESM modules to local Jest mocks to avoid ESM parse errors in Node env
+  '^expo-secure-store$': '<rootDir>/tests/mocks/expo-secure-store.js',
+  '^expo-local-authentication$': '<rootDir>/tests/mocks/expo-local-authentication.js',
   },
   
-  // Global test variables
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
-    __DEV__: true,
-  },
   
   // Test reporters for CI/CD integration
   reporters: [
@@ -133,14 +119,7 @@ module.exports = {
   // Clear mocks between tests
   clearMocks: true,
   
-  // Collect coverage from untested files
-  collectCoverageFrom: [
-    'services/**/*.{ts,tsx}',
-    'components/**/*.{ts,tsx}',
-    'contexts/**/*.{ts,tsx}',
-    '!**/*.d.ts',
-    '!**/node_modules/**',
-  ],
+  // Note: collectCoverageFrom is defined once above
   
   // Error on deprecated features
   errorOnDeprecated: true,

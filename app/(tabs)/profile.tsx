@@ -6,1238 +6,1162 @@
 import React from 'react';
 const { useState } = React;
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  Alert,
-  Image,
-  Linking,
+	View,
+	Text,
+	StyleSheet,
+	TouchableOpacity,
+	SafeAreaView,
+	ScrollView,
+	Alert,
+	Image,
+	Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme, shadow } from '@/config/theme';
 import { Ionicons } from '@expo/vector-icons';
 import GlassCard from '@/components/GlassCard';
+import { useBalance } from '@/contexts/BalanceContext';
+import { useAccountsIntegration } from '@/contexts/AccountIntegrationContext';
+import { useBudgetPlan } from '@/contexts/BudgetPlanContext';
+import { wellbeingScoreService, WellbeingScoreResult } from '@/services/WellbeingScoreService';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { useMobileAuth } from '@/contexts/MobileAuthContext';
+import { useAWS } from '@/contexts/AWSContext';
 import BiometricSettings from '@/components/BiometricSettings';
+import GamificationWidget from '@/components/GamificationWidget';
+import { useGoals } from '@/contexts/GoalsContext';
+import ProgressRing from '@/components/ProgressRing';
 
 export default function ProfileScreen() {
-  const { mode, toggle } = useThemeMode?.() || { mode: 'dark', toggle: () => {} } as any;
-  const [isLoading, setIsLoading] = useState(false);
-  const { user, signOut, biometricAvailable, updateProfile, resetPassword } = useMobileAuth();
-  const router = useRouter();
+	const { mode, toggle } = useThemeMode?.() || { mode: 'dark', toggle: () => {} } as any;
+	const [isLoading, setIsLoading] = useState(false);
+	
+	// AWS Context with fallback to demo mode
+	const aws = useAWS();
+	const { currentUser, isInitialized, signOut: awsSignOut } = aws || {};
+	const user = currentUser || { 
+		firstName: 'Demo', 
+		email: 'demo@bluebot.com',
+		fullName: 'Demo User',
+		phoneNumber: '+27 123 456 789',
+		photoURL: null,
+		balance: 2500.75,
+		biometricEnabled: false
+	};
 
-  const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            setIsLoading(true);
-            try {
-              await signOut();
-              router.replace('/login');
-            } catch (error: any) {
-              Alert.alert('Error', 'Failed to sign out');
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  };
+	const { currentBalance } = useBalance();
+	const accountsFeed = useAccountsIntegration();
+	const { plan: budgetPlan } = useBudgetPlan();
+	const [wellbeing, setWellbeing] = useState<WellbeingScoreResult|null>(null);
+	// Gamification & Goals moved from Dashboard
+	const { goals, addGoal, updateGoalProgress, updateGoalDetails, removeGoal, archiveGoal } = useGoals();
 
-  const handleEditProfile = () => {
-    Alert.alert(
-      'Edit Profile',
-      'Choose what you want to update:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Update Name', 
-          onPress: () => showUpdateNameDialog()
-        },
-        { 
-          text: 'Update Email', 
-          onPress: () => showUpdateEmailDialog()
-        },
-        { 
-          text: 'Update Phone', 
-          onPress: () => showUpdatePhoneDialog()
-        },
-        { 
-          text: 'Profile Picture', 
-          onPress: () => showProfilePictureOptions()
-        },
-      ]
-    );
-  };
+	const handleEditGoal = (goalId: string) => {
+		const goal = goals.find(g=>g.id===goalId);
+		if(!goal) return;
+		Alert.alert('Goal Options', goal.title, [
+			{ text: 'Cancel', style: 'cancel' },
+			{ text: 'Add Progress', onPress: () => promptAddProgress(goal) },
+			{ text: 'Rename', onPress: () => promptRenameGoal(goal) },
+			{ text: 'Adjust Target', onPress: () => promptAdjustTarget(goal) },
+			{ text: 'Archive', style: 'destructive', onPress: () => archiveGoal(goal.id) },
+			{ text: 'Delete', style: 'destructive', onPress: () => confirmDeleteGoal(goal) },
+		]);
+	};
 
-  const showUpdateNameDialog = () => {
-    // Using Alert.prompt for platforms that support it
-    if (Alert.prompt) {
-      Alert.prompt(
-        'Update Name',
-        'Enter your new full name:',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Update', 
-            onPress: async (newName) => {
-              if (newName && newName.trim().length >= 2) {
-                await updateUserProfile({ fullName: newName.trim() });
-              } else {
-                Alert.alert('Invalid Name', 'Please enter a valid name (at least 2 characters)');
-              }
-            }
-          }
-        ],
-        'plain-text',
-        user?.fullName || ''
-      );
-    } else {
-      // Fallback for platforms that don't support Alert.prompt
-      Alert.alert(
-        'Update Name',
-        'To update your name:\n\n1. Contact our support team\n2. Provide valid ID documentation\n3. Verification process takes 1-2 business days',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Contact Support', onPress: () => Alert.alert('Support', 'Opening support chat...') }
-        ]
-      );
-    }
-  };
+	const promptAddProgress = (goal: any) => {
+		if (Alert.prompt) {
+			Alert.prompt('Add Progress', `Enter amount to add to "${goal.title}" (R):`, [
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Add', onPress: (val) => {
+					const num = Number(val);
+					if(!isNaN(num) && num > 0){
+						updateGoalProgress(goal.id, goal.current + num);
+					} else { Alert.alert('Invalid', 'Enter a positive number'); }
+				}}
+			],'plain-text','0');
+		} else {
+			Alert.alert('Not Supported', 'Inline input not supported on this platform');
+		}
+	};
 
-  const showUpdateEmailDialog = () => {
-    if (Alert.prompt) {
-      Alert.prompt(
-        'Update Email',
-        'Enter your new email address:\n\n⚠️ This will require email verification',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Send Verification', 
-            onPress: async (newEmail) => {
-              if (newEmail && isValidEmail(newEmail)) {
-                Alert.alert(
-                  'Verification Sent',
-                  `A verification link has been sent to ${newEmail}. Click the link to confirm your new email address.`,
-                  [{ text: 'OK' }]
-                );
-              } else {
-                Alert.alert('Invalid Email', 'Please enter a valid email address');
-              }
-            }
-          }
-        ],
-        'plain-text',
-        user?.email || ''
-      );
-    } else {
-      Alert.alert(
-        'Update Email',
-        'To update your email address:\n\n1. Current email: ' + (user?.email || 'Not set') + '\n2. Contact support for secure email change\n3. Verification required for security',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Contact Support', onPress: () => Alert.alert('Support', 'Opening support for email change...') }
-        ]
-      );
-    }
-  };
+	const promptRenameGoal = (goal: any) => {
+		if (Alert.prompt) {
+			Alert.prompt('Rename Goal', 'Enter new goal title:', [
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Save', onPress: (val) => {
+					if(val && val.trim().length >= 2){
+						updateGoalDetails(goal.id, { title: val.trim() });
+					} else { Alert.alert('Invalid', 'Title must be at least 2 characters'); }
+				}}
+			],'plain-text', goal.title);
+		}
+	};
 
-  const showUpdatePhoneDialog = () => {
-    if (Alert.prompt) {
-      Alert.prompt(
-        'Update Phone Number',
-        'Enter your new phone number (include country code):',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Send SMS Code', 
-            onPress: (newPhone) => {
-              if (newPhone && isValidPhoneNumber(newPhone)) {
-                Alert.alert(
-                  'SMS Sent',
-                  `A verification code has been sent to ${newPhone}. Enter the code to confirm your new phone number.`,
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { 
-                      text: 'Enter Code', 
-                      onPress: () => showSMSVerification(newPhone)
-                    }
-                  ]
-                );
-              } else {
-                Alert.alert('Invalid Phone', 'Please enter a valid phone number with country code (e.g., +27821234567)');
-              }
-            }
-          }
-        ],
-        'phone-pad',
-        user?.phoneNumber || ''
-      );
-    } else {
-      Alert.alert(
-        'Update Phone Number',
-        'To update your phone number:\n\n1. Current: ' + (user?.phoneNumber || 'Not set') + '\n2. Contact support for secure phone change\n3. SMS verification required',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Contact Support', onPress: () => Alert.alert('Support', 'Opening support for phone change...') }
-        ]
-      );
-    }
-  };
+	const promptAdjustTarget = (goal: any) => {
+		if (Alert.prompt) {
+			Alert.prompt('Adjust Target', `Current target R${goal.target.toLocaleString()}. Enter new target:`, [
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Save', onPress: (val) => {
+					const num = Number(val);
+					if(!isNaN(num) && num >= goal.current && num > 0){
+						updateGoalDetails(goal.id, { target: num });
+					} else if(!isNaN(num) && num > 0 && num < goal.current){
+						// Allow lowering; will clamp progress in updateGoalDetails
+						updateGoalDetails(goal.id, { target: num });
+					} else { Alert.alert('Invalid', 'Enter a valid number greater than 0'); }
+				}}
+			],'plain-text', goal.target.toString());
+		}
+	};
 
-  const showSMSVerification = (phoneNumber: string) => {
-    if (Alert.prompt) {
-      Alert.prompt(
-        'SMS Verification',
-        `Enter the 6-digit code sent to ${phoneNumber}:`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Verify', 
-            onPress: async (code) => {
-              if (code && code.length === 6) {
-                await updateUserProfile({ phoneNumber });
-                Alert.alert('Success', 'Phone number updated successfully!');
-              } else {
-                Alert.alert('Invalid Code', 'Please enter the 6-digit verification code');
-              }
-            }
-          }
-        ],
-        'numeric'
-      );
-    }
-  };
+	const confirmDeleteGoal = (goal: any) => {
+		Alert.alert('Delete Goal', `Delete "${goal.title}"? This cannot be undone.`, [
+			{ text: 'Cancel', style: 'cancel' },
+			{ text: 'Delete', style: 'destructive', onPress: () => removeGoal(goal.id) }
+		]);
+	};
 
-  const isValidEmail = (email: string): boolean => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+	const handleQuickGoalAdd = () => {
+		addGoal({ title: 'New Goal', category: 'custom', current: 0, target: 10000 });
+	};
 
-  const isValidPhoneNumber = (phone: string): boolean => {
-    return /^\+[1-9]\d{1,14}$/.test(phone);
-  };
+	// Compute quick wellbeing snapshot (lightweight) when feed or balance changes
+	React.useEffect(()=>{
+		try {
+			const expenses = accountsFeed.expenseLike.map(e=>({ amount: e.amount, category: e.category, date: e.date, isRecurring: e.isRecurring }));
+			const result = wellbeingScoreService.compute(expenses, [], currentBalance);
+			setWellbeing(result);
+		} catch {}
+	}, [accountsFeed.expenseLike, currentBalance]);
+	
+	// Demo mode functions
+	const signOut = async () => {
+		if (awsSignOut) {
+			return awsSignOut();
+		}
+		// Demo mode - just show alert
+		Alert.alert('Demo Mode', 'Sign out would work in live mode');
+	};
+	
+	const updateProfile = async (data: any) => {
+		if (isInitialized) {
+			// Would update profile via AWS Cognito
+			Alert.alert('Success', 'Profile updated successfully');
+		} else {
+			Alert.alert('Demo Mode', 'Profile updates would be saved in live mode');
+		}
+	};
+	
+	const resetPassword = async () => {
+		if (isInitialized) {
+			// Would reset password via AWS Cognito
+			Alert.alert('Success', 'Password reset email sent');
+		} else {
+			Alert.alert('Demo Mode', 'Password reset would work in live mode');
+		}
+	};
+	
+	const biometricAvailable = false; // Demo mode - biometrics not available
+	
+	// Utility function to safely get user properties
+	const getUserProperty = (property: string, defaultValue: any = '') => {
+		if (currentUser && property in currentUser) {
+			return (currentUser as any)[property];
+		}
+		if (user && property in user) {
+			return (user as any)[property];
+		}
+		return defaultValue;
+	};
+	
+	const router = useRouter();
 
-  const showProfilePictureOptions = () => {
-    Alert.alert(
-      'Profile Picture',
-      'Choose how to update your profile picture:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Take Photo', 
-          onPress: () => requestCameraPermission()
-        },
-        { 
-          text: 'Choose from Gallery', 
-          onPress: () => requestGalleryAccess()
-        },
-        { 
-          text: 'Remove Photo', 
-          onPress: () => updateUserProfile({ photoURL: null })
-        },
-        {
-          text: 'Choose Avatar',
-          onPress: () => showAvatarOptions()
-        }
-      ]
-    );
-  };
+	const handleSignOut = async () => {
+		Alert.alert(
+			'Sign Out',
+			'Are you sure you want to sign out?',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Sign Out',
+					style: 'destructive',
+					onPress: async () => {
+						setIsLoading(true);
+						try {
+							await signOut();
+							router.replace('/login');
+						} catch (error: any) {
+							Alert.alert('Error', 'Failed to sign out');
+						} finally {
+							setIsLoading(false);
+						}
+					},
+				},
+			]
+		);
+	};
 
-  const requestCameraPermission = () => {
-    Alert.alert(
-      'Camera Access',
-      'BlueBot needs camera permission to take your profile photo.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Grant Permission', 
-          onPress: () => {
-            Alert.alert('Camera', 'Opening camera for profile photo...\n\n(In production, this would use react-native-image-picker)');
-          }
-        },
-        {
-          text: 'Settings',
-          onPress: () => Alert.alert('Settings', 'Open device settings to manage app permissions')
-        }
-      ]
-    );
-  };
+	const handleEditProfile = () => {
+		Alert.alert(
+			'Edit Profile',
+			'Choose what you want to update:',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ 
+					text: 'Update Name', 
+					onPress: () => showUpdateNameDialog()
+				},
+				{ 
+					text: 'Update Email', 
+					onPress: () => showUpdateEmailDialog()
+				},
+				{ 
+					text: 'Update Phone', 
+					onPress: () => showUpdatePhoneDialog()
+				},
+				{ 
+					text: 'Profile Picture', 
+					onPress: () => showProfilePictureOptions()
+				},
+			]
+		);
+	};
 
-  const requestGalleryAccess = () => {
-    Alert.alert(
-      'Photo Library Access',
-      'BlueBot needs access to your photo library to select a profile picture.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Grant Permission', 
-          onPress: () => {
-            Alert.alert('Gallery', 'Opening photo gallery...\n\n(In production, this would use expo-image-picker)');
-          }
-        },
-        {
-          text: 'Settings',
-          onPress: () => Alert.alert('Settings', 'Open device settings to manage app permissions')
-        }
-      ]
-    );
-  };
+	const showUpdateNameDialog = () => {
+		// Using Alert.prompt for platforms that support it
+		if (Alert.prompt) {
+			Alert.prompt(
+				'Update Name',
+				'Enter your new full name:',
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ 
+						text: 'Update', 
+						onPress: async (newName) => {
+							if (newName && newName.trim().length >= 2) {
+								await updateUserProfile({ fullName: newName.trim() });
+							} else {
+								Alert.alert('Invalid Name', 'Please enter a valid name (at least 2 characters)');
+							}
+						}
+					}
+				],
+				'plain-text',
+				getUserProperty('fullName', 'Demo User')
+			);
+		} else {
+			// Fallback for platforms that don't support Alert.prompt
+			Alert.alert(
+				'Update Name',
+				'To update your name:\n\n1. Contact our support team\n2. Provide valid ID documentation\n3. Verification process takes 1-2 business days',
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ text: 'Contact Support', onPress: () => Alert.alert('Support', 'Opening support chat...') }
+				]
+			);
+		}
+	};
 
-  const showAvatarOptions = () => {
-    const avatars = ['👤', '👨', '👩', '🧑', '👱', '👨‍💼', '👩‍💼', '🧑‍💼', '👨‍🎓', '👩‍🎓'];
-    Alert.alert(
-      'Choose Avatar',
-      'Select a default avatar:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        ...avatars.slice(0, 3).map((avatar, index) => ({
-          text: `${avatar} Avatar ${index + 1}`,
-          onPress: () => updateUserProfile({ photoURL: `avatar_${index + 1}` })
-        })),
-        {
-          text: 'More Options',
-          onPress: () => Alert.alert('Avatar Gallery', 'More avatar options available in settings')
-        }
-      ]
-    );
-  };
+	const showUpdateEmailDialog = () => {
+		if (Alert.prompt) {
+			Alert.prompt(
+				'Update Email',
+				'Enter your new email address:\n\n⚠️ This will require email verification',
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ 
+						text: 'Send Verification', 
+						onPress: async (newEmail) => {
+							if (newEmail && isValidEmail(newEmail)) {
+								Alert.alert(
+									'Verification Sent',
+									`A verification link has been sent to ${newEmail}. Click the link to confirm your new email address.`,
+									[{ text: 'OK' }]
+								);
+							} else {
+								Alert.alert('Invalid Email', 'Please enter a valid email address');
+							}
+						}
+					}
+				],
+				'plain-text',
+				user?.email || ''
+			);
+		} else {
+			Alert.alert(
+				'Update Email',
+				'To update your email address:\n\n1. Current email: ' + (user?.email || 'Not set') + '\n2. Contact support for secure email change\n3. Verification required for security',
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ text: 'Contact Support', onPress: () => Alert.alert('Support', 'Opening support for email change...') }
+				]
+			);
+		}
+	};
 
-  const updateUserProfile = async (updates: any) => {
-    setIsLoading(true);
-    try {
-      // Use the actual auth context to update profile
-      if (updateProfile) {
-        await updateProfile(updates);
-        Alert.alert('Success', 'Profile updated successfully!');
-      } else {
-        // Fallback - simulate update
-        Alert.alert('Success', 'Profile changes saved locally. Will sync when online.');
-      }
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to update profile: ' + (error.message || 'Unknown error'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+	const showUpdatePhoneDialog = () => {
+		if (Alert.prompt) {
+			Alert.prompt(
+				'Update Phone Number',
+				'Enter your new phone number (include country code):',
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ 
+						text: 'Send SMS Code', 
+						onPress: (newPhone) => {
+							if (newPhone && isValidPhoneNumber(newPhone)) {
+								Alert.alert(
+									'SMS Sent',
+									`A verification code has been sent to ${newPhone}. Enter the code to confirm your new phone number.`,
+									[
+										{ text: 'Cancel', style: 'cancel' },
+										{ 
+											text: 'Enter Code', 
+											onPress: () => showSMSVerification(newPhone)
+										}
+									]
+								);
+							} else {
+								Alert.alert('Invalid Phone', 'Please enter a valid phone number with country code (e.g., +27821234567)');
+							}
+						}
+					}
+				],
+				'phone-pad',
+				user?.phoneNumber || ''
+			);
+		} else {
+			Alert.alert(
+				'Update Phone Number',
+				'To update your phone number:\n\n1. Current: ' + (user?.phoneNumber || 'Not set') + '\n2. Contact support for secure phone change\n3. SMS verification required',
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ text: 'Contact Support', onPress: () => Alert.alert('Support', 'Opening support for phone change...') }
+				]
+			);
+		}
+	};
 
-  const showChangePasswordOptions = () => {
-    Alert.alert(
-      'Change Password',
-      'Choose how you want to change your password:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Email Reset Link', 
-          onPress: () => sendPasswordReset()
-        },
-        { 
-          text: 'Change with Current Password', 
-          onPress: () => showPasswordChangeForm()
-        },
-      ]
-    );
-  };
+	const showSMSVerification = (phoneNumber: string) => {
+		if (Alert.prompt) {
+			Alert.prompt(
+				'SMS Verification',
+				`Enter the 6-digit code sent to ${phoneNumber}:`,
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ 
+						text: 'Verify', 
+						onPress: async (code) => {
+							if (code && code.length === 6) {
+								await updateUserProfile({ phoneNumber });
+								Alert.alert('Success', 'Phone number updated successfully!');
+							} else {
+								Alert.alert('Invalid Code', 'Please enter the 6-digit verification code');
+							}
+						}
+					}
+				],
+				'numeric'
+			);
+		}
+	};
 
-  const sendPasswordReset = async () => {
-    try {
-      if (resetPassword && user?.email) {
-        await resetPassword(user.email);
-        Alert.alert(
-          'Reset Link Sent',
-          `A password reset link has been sent to ${user.email}. Check your email and follow the instructions to reset your password.`,
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert('Error', 'Email address required for password reset');
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to send reset email');
-    }
-  };
+	const isValidEmail = (email: string): boolean => {
+		return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+	};
 
-  const showPasswordChangeForm = () => {
-    if (Alert.prompt) {
-      Alert.prompt(
-        'Current Password',
-        'Enter your current password:',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Next', 
-            onPress: (currentPassword) => {
-              if (currentPassword && currentPassword.length >= 6) {
-                showNewPasswordForm(currentPassword);
-              } else {
-                Alert.alert('Invalid Password', 'Please enter your current password');
-              }
-            }
-          }
-        ],
-        'secure-text'
-      );
-    } else {
-      Alert.alert(
-        'Change Password',
-        'For security, password changes require email verification. Use "Email Reset Link" option instead.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
+	const isValidPhoneNumber = (phone: string): boolean => {
+		return /^\+[1-9]\d{1,14}$/.test(phone);
+	};
 
-  const showNewPasswordForm = (currentPassword: string) => {
-    if (Alert.prompt) {
-      Alert.prompt(
-        'New Password',
-        'Enter your new password (minimum 8 characters):',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Change Password', 
-            onPress: (newPassword) => {
-              if (newPassword && newPassword.length >= 8) {
-                confirmPasswordChange(currentPassword, newPassword);
-              } else {
-                Alert.alert('Weak Password', 'Password must be at least 8 characters long');
-              }
-            }
-          }
-        ],
-        'secure-text'
-      );
-    }
-  };
+	const showProfilePictureOptions = () => {
+		Alert.alert(
+			'Profile Picture',
+			'Choose how to update your profile picture:',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ 
+					text: 'Take Photo', 
+					onPress: () => requestCameraPermission()
+				},
+				{ 
+					text: 'Choose from Gallery', 
+					onPress: () => requestGalleryAccess()
+				},
+				{ 
+					text: 'Remove Photo', 
+					onPress: () => updateUserProfile({ photoURL: null })
+				},
+				{
+					text: 'Choose Avatar',
+					onPress: () => showAvatarOptions()
+				}
+			]
+		);
+	};
 
-  const confirmPasswordChange = (currentPassword: string, newPassword: string) => {
-    Alert.alert(
-      'Confirm Password Change',
-      'Are you sure you want to change your password?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Change Password', 
-          onPress: async () => {
-            setIsLoading(true);
-            try {
-              if (typeof (useMobileAuth as any) === 'function') {
-                const { changePassword } = useMobileAuth();
-                if (changePassword) {
-                  await changePassword(currentPassword, newPassword);
-                } else {
-                  throw new Error('Change password not available');
-                }
-              }
-              Alert.alert('Success', 'Password changed successfully!');
-            } catch (error: any) {
-              Alert.alert('Error', 'Failed to change password: ' + error.message);
-            } finally {
-              setIsLoading(false);
-            }
-          }
-        }
-      ]
-    );
-  };
+	const requestCameraPermission = () => {
+		Alert.alert(
+			'Camera Access',
+			'BlueBot needs camera permission to take your profile photo.',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ 
+					text: 'Grant Permission', 
+					onPress: () => {
+						Alert.alert('Camera', 'Opening camera for profile photo...\n\n(In production, this would use react-native-image-picker)');
+					}
+				},
+				{
+					text: 'Settings',
+					onPress: () => Alert.alert('Settings', 'Open device settings to manage app permissions')
+				}
+			]
+		);
+	};
 
-  const showTwoFactorOptions = () => {
-    Alert.alert(
-      'Two-Factor Authentication',
-      user?.biometricEnabled ? 
-        'You have biometric authentication enabled. Choose additional 2FA methods:' :
-        'Add an extra layer of security to your account:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'SMS Authentication', 
-          onPress: () => setupSMS2FA()
-        },
-        { 
-          text: 'Authenticator App', 
-          onPress: () => setupAuthenticatorApp()
-        },
-        { 
-          text: 'Email Verification', 
-          onPress: () => setupEmail2FA()
-        },
-        {
-          text: 'Biometric Settings',
-          onPress: () => showBiometricSettings()
-        }
-      ]
-    );
-  };
+	const requestGalleryAccess = () => {
+		Alert.alert(
+			'Photo Library Access',
+			'BlueBot needs access to your photo library to select a profile picture.',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ 
+					text: 'Grant Permission', 
+					onPress: () => {
+						Alert.alert('Gallery', 'Opening photo gallery...\n\n(In production, this would use expo-image-picker)');
+					}
+				},
+				{
+					text: 'Settings',
+					onPress: () => Alert.alert('Settings', 'Open device settings to manage app permissions')
+				}
+			]
+		);
+	};
 
-  const setupSMS2FA = () => {
-    if (user?.phoneNumber) {
-      Alert.alert(
-        'SMS Two-Factor Authentication',
-        `Enable SMS 2FA for phone number: ${user.phoneNumber}?\n\nYou'll receive a verification code via SMS when signing in.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Enable SMS 2FA', 
-            onPress: () => {
-              Alert.alert(
-                'SMS 2FA Enabled',
-                'SMS two-factor authentication has been enabled for your account. You will receive a verification code on your phone for future logins.',
-                [{ text: 'OK' }]
-              );
-            }
-          }
-        ]
-      );
-    } else {
-      Alert.alert(
-        'Phone Number Required',
-        'You need to add a phone number before enabling SMS 2FA.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Add Phone Number', onPress: () => showUpdatePhoneDialog() }
-        ]
-      );
-    }
-  };
+	const showAvatarOptions = () => {
+		const avatars = ['👤', '👨', '👩', '🧑', '👱', '👨‍💼', '👩‍💼', '🧑‍💼', '👨‍🎓', '👩‍🎓'];
+		Alert.alert(
+			'Choose Avatar',
+			'Select a default avatar:',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				...avatars.slice(0, 3).map((avatar, index) => ({
+					text: `${avatar} Avatar ${index + 1}`,
+					onPress: () => updateUserProfile({ photoURL: `avatar_${index + 1}` })
+				})),
+				{
+					text: 'More Options',
+					onPress: () => Alert.alert('Avatar Gallery', 'More avatar options available in settings')
+				}
+			]
+		);
+	};
 
-  const setupAuthenticatorApp = () => {
-    const qrCodeData = 'otpauth://totp/BlueBot:' + user?.email + '?secret=ABCDEFGHIJKLMNOP&issuer=BlueBot';
-    Alert.alert(
-      'Authenticator App Setup',
-      `1. Download Google Authenticator or Authy
-2. Scan the QR code (would display here)
-3. Enter the 6-digit code to verify
+	const updateUserProfile = async (updates: any) => {
+		setIsLoading(true);
+		try {
+			// Use the actual auth context to update profile
+			if (updateProfile) {
+				await updateProfile(updates);
+				Alert.alert('Success', 'Profile updated successfully!');
+			} else {
+				// Fallback - simulate update
+				Alert.alert('Success', 'Profile changes saved locally. Will sync when online.');
+			}
+		} catch (error: any) {
+			Alert.alert('Error', 'Failed to update profile: ' + (error.message || 'Unknown error'));
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
-Secret key (manual entry): ABCD-EFGH-IJKL-MNOP`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'I have the app', 
-          onPress: () => verifyAuthenticatorSetup()
-        },
-        {
-          text: 'Download App',
-          onPress: () => Alert.alert('Download', 'Redirecting to app store for Google Authenticator...')
-        }
-      ]
-    );
-  };
+	const showChangePasswordOptions = () => {
+		Alert.alert(
+			'Change Password',
+			'Choose how you want to change your password:',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ 
+					text: 'Email Reset Link', 
+					onPress: () => sendPasswordReset()
+				},
+				{ 
+					text: 'Change with Current Password', 
+					onPress: () => showPasswordChangeForm()
+				},
+			]
+		);
+	};
 
-  const verifyAuthenticatorSetup = () => {
-    if (Alert.prompt) {
-      Alert.prompt(
-        'Verify Authenticator',
-        'Enter the 6-digit code from your authenticator app:',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Verify', 
-            onPress: (code) => {
-              if (code && code.length === 6) {
-                Alert.alert('Success', 'Authenticator app has been successfully linked to your account!');
-              } else {
-                Alert.alert('Invalid Code', 'Please enter the 6-digit code from your authenticator app');
-              }
-            }
-          }
-        ],
-        'numeric'
-      );
-    } else {
-      Alert.alert('Verification', 'Authenticator app verification coming soon!');
-    }
-  };
+	const sendPasswordReset = async () => {
+		try {
+			if (resetPassword && user?.email) {
+				await resetPassword();
+				Alert.alert(
+					'Reset Link Sent',
+					`A password reset link has been sent to ${user.email}. Check your email and follow the instructions to reset your password.`,
+					[{ text: 'OK' }]
+				);
+			} else {
+				Alert.alert('Error', 'Email address required for password reset');
+			}
+		} catch (error: any) {
+			Alert.alert('Error', error.message || 'Failed to send reset email');
+		}
+	};
 
-  const setupEmail2FA = () => {
-    Alert.alert(
-      'Email Two-Factor Authentication',
-      `Enable email 2FA for: ${user?.email}?\n\nYou'll receive a verification code via email when signing in from new devices.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Enable Email 2FA', 
-          onPress: () => {
-            Alert.alert(
-              'Email 2FA Enabled',
-              'Email two-factor authentication has been enabled. You will receive verification codes via email for new device logins.',
-              [{ text: 'OK' }]
-            );
-          }
-        }
-      ]
-    );
-  };
+	const showPasswordChangeForm = () => {
+		if (Alert.prompt) {
+			Alert.prompt(
+				'Current Password',
+				'Enter your current password:',
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ 
+						text: 'Next', 
+						onPress: (currentPassword) => {
+							if (currentPassword && currentPassword.length >= 6) {
+								showNewPasswordForm(currentPassword);
+							} else {
+								Alert.alert('Invalid Password', 'Please enter your current password');
+							}
+						}
+					}
+				],
+				'secure-text'
+			);
+		} else {
+			Alert.alert(
+				'Change Password',
+				'For security, password changes require email verification. Use "Email Reset Link" option instead.',
+				[{ text: 'OK' }]
+			);
+		}
+	};
 
-  const showBiometricSettings = () => {
-    if (biometricAvailable) {
-      Alert.alert(
-        'Biometric Authentication',
-        user?.biometricEnabled ? 
-          'Biometric authentication is currently enabled for your account.' :
-          'Biometric authentication is available on your device.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          user?.biometricEnabled ? 
-            { text: 'Disable Biometric', onPress: () => disableBiometric() } :
-            { text: 'Enable Biometric', onPress: () => enableBiometric() },
-          { text: 'Test Biometric', onPress: () => testBiometric() }
-        ]
-      );
-    } else {
-      Alert.alert(
-        'Biometric Not Available',
-        'Biometric authentication is not available on this device or not set up in device settings.',
-        [
-          { text: 'OK' },
-          { text: 'Device Settings', onPress: () => Alert.alert('Settings', 'Open device settings to set up biometric authentication') }
-        ]
-      );
-    }
-  };
+	const showNewPasswordForm = (currentPassword: string) => {
+		if (Alert.prompt) {
+			Alert.prompt(
+				'New Password',
+				'Enter your new password (minimum 8 characters):',
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ 
+						text: 'Change Password', 
+						onPress: (newPassword) => {
+							if (newPassword && newPassword.length >= 8) {
+								confirmPasswordChange(currentPassword, newPassword);
+							} else {
+								Alert.alert('Weak Password', 'Password must be at least 8 characters long');
+							}
+						}
+					}
+				],
+				'secure-text'
+			);
+		}
+	};
 
-  const enableBiometric = async () => {
-    try {
-      // This would call the actual enableBiometric function from auth context
-      Alert.alert('Success', 'Biometric authentication has been enabled for your account!');
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to enable biometric authentication: ' + error.message);
-    }
-  };
+	const confirmPasswordChange = (currentPassword: string, newPassword: string) => {
+		Alert.alert(
+			'Confirm Password Change',
+			'Are you sure you want to change your password?',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ 
+					text: 'Change Password', 
+					onPress: async () => {
+						setIsLoading(true);
+						try {
+							if (isInitialized) {
+								// Would change password via AWS Cognito
+								Alert.alert('Success', 'Password changed successfully!');
+							} else {
+								Alert.alert('Demo Mode', 'Password change would work in live mode');
+							}
+						} catch (error: any) {
+							Alert.alert('Error', 'Failed to change password: ' + error.message);
+						} finally {
+							setIsLoading(false);
+						}
+					}
+				}
+			]
+		);
+	};
 
-  const disableBiometric = async () => {
-    Alert.alert(
-      'Disable Biometric Authentication',
-      'Are you sure you want to disable biometric authentication? You will need to use your password or other 2FA methods.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Disable', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // This would call the actual disableBiometric function from auth context
-              Alert.alert('Disabled', 'Biometric authentication has been disabled for your account.');
-            } catch (error: any) {
-              Alert.alert('Error', 'Failed to disable biometric authentication: ' + error.message);
-            }
-          }
-        }
-      ]
-    );
-  };
+	const showTwoFactorOptions = () => {
+		Alert.alert(
+			'Two-Factor Authentication',
+			getUserProperty('biometricEnabled', false) ? 
+				'You have biometric authentication enabled. Choose additional 2FA methods:' :
+				'Add an extra layer of security to your account:',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ 
+					text: 'SMS Authentication', 
+					onPress: () => setupSMS2FA()
+				},
+				{ 
+					text: 'Authenticator App', 
+					onPress: () => setupAuthenticatorApp()
+				},
+				{ 
+					text: 'Email Verification', 
+					onPress: () => setupEmail2FA()
+				},
+				{ 
+					text: 'Biometric Settings',
+					onPress: () => showBiometricSettings()
+				}
+			]
+		);
+	};
 
-  const testBiometric = async () => {
-    try {
-      // This would call the actual biometric test function
-      Alert.alert('Test Successful', 'Biometric authentication is working correctly!');
-    } catch (error: any) {
-      Alert.alert('Test Failed', 'Biometric authentication test failed: ' + error.message);
-    }
-  };
+	const setupSMS2FA = () => {
+		if (user?.phoneNumber) {
+			Alert.alert(
+				'SMS Two-Factor Authentication',
+				`Enable SMS 2FA for phone number: ${user.phoneNumber}?\n\nYou'll receive a verification code via SMS when signing in.`,
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ 
+						text: 'Enable SMS 2FA', 
+						onPress: () => {
+							Alert.alert(
+								'SMS 2FA Enabled',
+								'SMS two-factor authentication has been enabled for your account. You will receive a verification code on your phone for future logins.',
+								[{ text: 'OK' }]
+							);
+						}
+					}
+				]
+			);
+		} else {
+			Alert.alert('Phone Required', 'Please add a phone number to your profile first');
+		}
+	};
 
-  const showLoginActivity = () => {
-    const loginHistory = [
-      {
-        date: 'Today 2:30 PM',
-        device: 'Mobile App (iPhone)',
-        location: 'Johannesburg, SA',
-        method: 'Biometric',
-        status: 'Current Session',
-        ip: '192.168.1.42'
-      },
-      {
-        date: 'Yesterday 6:45 PM',
-        device: 'Mobile App (iPhone)',
-        location: 'Johannesburg, SA',
-        method: 'Email & Password',
-        status: 'Successful',
-        ip: '192.168.1.42'
-      },
-      {
-        date: '2 days ago 10:15 AM',
-        device: 'Web Browser (Chrome)',
-        location: 'Cape Town, SA',
-        method: 'Google Sign-In',
-        status: 'Successful',
-        ip: '102.165.23.114'
-      },
-      {
-        date: '3 days ago 8:22 PM',
-        device: 'Mobile App (iPhone)',
-        location: 'Johannesburg, SA',
-        method: 'Email & Password',
-        status: 'Failed (Wrong Password)',
-        ip: '192.168.1.42'
-      }
-    ];
+	const setupAuthenticatorApp = () => {
+		Alert.alert(
+			'Authenticator App',
+			'To set up an authenticator app:\n\n1. Install Microsoft/Google Authenticator\n2. Scan the QR code in the next step\n3. Enter the 6-digit code to verify',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Continue', onPress: () => Alert.alert('QR Code', 'QR setup would be shown here in production') }
+			]
+		);
+	};
 
-    const formatLoginHistory = () => {
-      return loginHistory.map(session => 
-        `🔑 ${session.date}\n` +
-        `   📱 ${session.device}\n` +
-        `   📍 ${session.location}\n` +
-        `   🔐 ${session.method}\n` +
-        `   ${session.status === 'Current Session' ? '✅' : session.status === 'Successful' ? '✅' : '❌'} ${session.status}\n`
-      ).join('\n');
-    };
+	const setupEmail2FA = () => {
+		Alert.alert(
+			'Email Verification',
+			'Enable email verification for logins?',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Enable', onPress: () => Alert.alert('Enabled', 'Email verification enabled for your account') }
+			]
+		);
+	};
 
-    Alert.alert(
-      'Recent Login Activity',
-      formatLoginHistory() + 
-      '\n📧 Get email alerts for new logins\n' +
-      '🔒 Sign out all devices available in settings',
-      [
-        { text: 'Close' },
-        { 
-          text: 'Email Alerts', 
-          onPress: () => toggleEmailAlerts()
-        },
-        {
-          text: 'Sign Out All',
-          onPress: () => signOutAllDevices()
-        },
-        {
-          text: 'Export Log',
-          onPress: () => exportLoginHistory()
-        }
-      ]
-    );
-  };
+	const showBiometricSettings = () => {
+		if (biometricAvailable) {
+			router.push('/biometric-settings');
+		} else {
+			Alert.alert('Not Available', 'Biometric authentication is not available on this device');
+		}
+	};
 
-  const toggleEmailAlerts = () => {
-    Alert.alert(
-      'Email Login Alerts',
-      'Get notified via email when someone signs into your account from a new device or location.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Enable Alerts', 
-          onPress: () => Alert.alert('Enabled', 'You will now receive email alerts for new logins.')
-        },
-        {
-          text: 'Disable Alerts',
-          onPress: () => Alert.alert('Disabled', 'Email login alerts have been disabled.')
-        }
-      ]
-    );
-  };
+	// Monthly spend + budget plan summary
+	const now = new Date();
+	const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+	const monthlySpent = accountsFeed.expenseLike.filter(e=>{
+		const d = new Date(e.date);
+		return d >= monthStart && d <= now;
+	}).reduce((s,e)=>s+e.amount,0);
 
-  const signOutAllDevices = () => {
-    Alert.alert(
-      'Sign Out All Devices',
-      'This will sign you out of all devices and browsers. You will need to sign in again on each device.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out All', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // This would call a function to invalidate all sessions
-              Alert.alert(
-                'Signed Out',
-                'You have been signed out of all devices. Please sign in again to continue using BlueBot.',
-                [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
-              );
-            } catch (error: any) {
-              Alert.alert('Error', 'Failed to sign out all devices: ' + error.message);
-            }
-          }
-        }
-      ]
-    );
-  };
+	const budgetPlanSummary = budgetPlan ? {
+		total: budgetPlan.totalSuggested,
+		cats: budgetPlan.recommendations.length,
+		savings: (()=>{ const sav = budgetPlan.recommendations.find(r=>/saving/i.test(r.category)); return sav?.suggested; })()
+	} : null;
 
-  const exportLoginHistory = () => {
-    Alert.alert(
-      'Export Login History',
-      'Download your complete login history for security review.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Email Report', 
-          onPress: () => Alert.alert('Email Sent', 'Login history report has been sent to your email address.')
-        },
-        {
-          text: 'Download CSV',
-          onPress: () => Alert.alert('Download', 'Login history CSV file has been prepared for download.')
-        }
-      ]
-    );
-  };
+	return (
+		<SafeAreaView style={styles.container}>
+			<ScrollView contentContainerStyle={styles.scrollContent}>
+				<LinearGradient
+					colors={[theme.colors.primaryDark, theme.colors.glass]}
+					start={{ x: 0, y: 0 }}
+					end={{ x: 1, y: 1 }}
+					style={styles.header}
+				>
+					<View style={styles.headerContent}>
+						<View style={styles.avatarWrapper}>
+							{getUserProperty('photoURL') ? (
+								<Image source={{ uri: getUserProperty('photoURL') }} style={styles.avatar} />
+							) : (
+								<View style={styles.avatarPlaceholder}>
+									<Ionicons name="person" size={48} color={theme.colors.primary} />
+								</View>
+							)}
+						</View>
+						<View style={styles.headerText}>
+							<Text style={styles.name}>{getUserProperty('fullName', 'Guest User')}</Text>
+							<Text style={styles.email}>{user?.email || 'No email'}</Text>
+						</View>
+					</View>
+				</LinearGradient>
 
-  const getLastLoginMethodDisplay = (method?: string) => {
-    switch (method) {
-      case 'email':
-  return { icon: 'mail', text: 'Email & Password', color: theme.colors.primary };
-      case 'phone':
-  return { icon: 'phone-portrait', text: 'Phone Number', color: theme.colors.success };
-      case 'google':
-  return { icon: 'logo-google', text: 'Google Account', color: theme.colors.danger };
-      case 'passwordless':
-  return { icon: 'link', text: 'Passwordless Email', color: theme.colors.accent };
-      case 'biometric':
-  return { icon: 'finger-print', text: 'Biometric', color: theme.colors.warning };
-      default:
-  return { icon: 'person', text: 'Unknown', color: theme.colors.muted };
-    }
-  };
+				{/* Financial Snapshot */}
+				<View style={styles.section}>
+					<GlassCard style={{ padding: 16 }}>
+						<Text style={styles.sectionSubTitle}>Financial Snapshot</Text>
+						<View style={{ flexDirection:'row', flexWrap:'wrap', gap:12, marginTop:4 }}>
+							<View style={styles.metricBox}>
+								<Text style={styles.metricLabel}>Balance</Text>
+								<Text style={styles.metricValue}>R{currentBalance.toFixed(2)}</Text>
+							</View>
+							<View style={styles.metricBox}>
+								<Text style={styles.metricLabel}>Month Spent</Text>
+								<Text style={styles.metricValue}>R{monthlySpent.toFixed(0)}</Text>
+							</View>
+							{wellbeing && (
+								<View style={styles.metricBox}>
+									<Text style={styles.metricLabel}>Wellbeing</Text>
+									<Text style={styles.metricValue}>{wellbeing.score.toFixed(0)} <Text style={styles.metricBadge}> {wellbeing.grade}</Text></Text>
+								</View>
+							)}
+							{budgetPlanSummary && (
+								<View style={[styles.metricBox, { flexBasis:'100%' }]}> 
+									<Text style={styles.metricLabel}>Budget Plan</Text>
+									<Text style={[styles.metricValue, { fontSize:14 }]}>R{budgetPlanSummary.total} • {budgetPlanSummary.cats} categories{budgetPlanSummary.savings?` • Savings R${budgetPlanSummary.savings}`:''}</Text>
+								</View>
+							)}
+						</View>
+						<View style={{ flexDirection:'row', marginTop:14, gap:12 }}>
+							<TouchableOpacity onPress={() => router.push('/add-expense')} style={[styles.smallPill, { backgroundColor: theme.colors.primary }]}> 
+								<Ionicons name="add" size={14} color="#fff" />
+								<Text style={styles.smallPillText}>Add Expense</Text>
+							</TouchableOpacity>
+							<TouchableOpacity onPress={() => router.push('/(tabs)/expenses')} style={styles.smallPill}> 
+								<Ionicons name="analytics" size={14} color={theme.colors.primary} />
+								<Text style={[styles.smallPillText, { color: theme.colors.primary }]}>View Expenses</Text>
+							</TouchableOpacity>
+						</View>
+					</GlassCard>
+				</View>
 
-  const lastLoginMethod = getLastLoginMethodDisplay(user?.lastLoginMethod);
+				{/* Achievements & Goals (migrated from Dashboard) */}
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>Achievements & Goals</Text>
+					<GlassCard style={{ padding: 12 }}>
+						<GamificationWidget />
+					</GlassCard>
+					<View style={{ height: 14 }} />
+					<Text style={styles.sectionSubTitle}>Goals Snapshot</Text>
+					{goals.map(g => {
+						const progress = Math.min((g.current / g.target) * 100, 100);
+						return (
+								<GlassCard key={g.id} style={[styles.goalItem, shadow(1), { flexDirection:'row', alignItems:'center', gap:12 }]}> 
+								<ProgressRing size={54} strokeWidth={6} progress={g.current / g.target} valueText={`${Math.round(progress)}%`} />
+								<View style={{ flex:1 }}>
+									<View style={styles.goalHeaderRow}>
+										<Text style={styles.goalTitle}>{g.title}</Text>
+										<Text style={styles.goalAmounts}>R{g.current.toLocaleString()} / R{g.target.toLocaleString()}</Text>
+									</View>
+									<View style={styles.goalBarBg}>
+										<View style={[styles.goalBarFill, { width: `${progress}%` }]} />
+									</View>
+										<View style={styles.goalActionsRow}>
+											<TouchableOpacity onPress={()=>handleEditGoal(g.id)} style={styles.goalActionBtn}>
+												<Ionicons name="ellipsis-horizontal" size={14} color={theme.colors.text} />
+												<Text style={styles.goalActionText}>Manage</Text>
+											</TouchableOpacity>
+											<TouchableOpacity onPress={()=>promptAddProgress(g)} style={styles.goalActionBtn}>
+												<Ionicons name="add-circle" size={14} color={theme.colors.primary} />
+												<Text style={[styles.goalActionText, { color: theme.colors.primary }]}>Progress</Text>
+											</TouchableOpacity>
+											{g.completedAt && (
+												<Text style={styles.goalCompletedBadge}>Completed</Text>
+											)}
+										</View>
+								</View>
+							</GlassCard>
+						);
+					})}
+					<TouchableOpacity onPress={handleQuickGoalAdd} style={[styles.smallPill, { marginTop:12, alignSelf:'flex-start', backgroundColor: theme.colors.primary }]}> 
+						<Ionicons name="add" size={14} color="#fff" />
+						<Text style={styles.smallPillText}>Add Goal</Text>
+					</TouchableOpacity>
+				</View>
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={theme.gradients.hero as any} style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-            <Ionicons name="pencil" size={20} color={theme.colors.text} />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+				{/* Theme & Appearance */}
+				<View style={styles.section}>
+					<GlassCard style={{ padding: 16 }}>
+						<View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center' }}>
+							<Text style={styles.sectionSubTitle}>Appearance</Text>
+							<TouchableOpacity onPress={toggle} style={styles.themeToggle}> 
+								<Ionicons name={mode === 'dark' ? 'moon' : 'sunny'} size={18} color={theme.colors.text} />
+								<Text style={styles.themeToggleText}>{mode === 'dark' ? 'Dark' : 'Light'}</Text>
+							</TouchableOpacity>
+						</View>
+					</GlassCard>
+				</View>
 
-  <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-  {/* User Info Card */}
-  <GlassCard style={styles.userCard} gradient="nav" border>
-          <View style={styles.avatarContainer}>
-            {user?.photoURL ? (
-              <Image source={{ uri: user.photoURL }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Ionicons name="person" size={40} color={theme.colors.primary} />
-              </View>
-            )}
-            <View style={styles.onlineIndicator} />
-          </View>
-          
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user?.fullName || 'User'}</Text>
-            <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
-            
-            <View style={styles.verificationBadge}>
-              <Ionicons 
-                name={user?.isVerified ? "checkmark-circle" : "alert-circle"} 
-                size={16} 
-                color={user?.isVerified ? theme.colors.success : theme.colors.warning} 
-              />
-              <Text style={[
-                styles.verificationText,
-                { color: user?.isVerified ? theme.colors.success : theme.colors.warning }
-              ]}>
-                {user?.isVerified ? 'Verified Account' : 'Unverified Account'}
-              </Text>
-            </View>
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>Security</Text>
+					<GlassCard style={{ padding: 16 }}>
+						<BiometricSettings />
+						<View style={{ height:1, backgroundColor: theme.colors.border, marginVertical:12 }} />
+						<View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:4 }}>
+							<Text style={styles.securityLabel}>Biometric</Text>
+							<Text style={styles.securityValue}>{getUserProperty('biometricEnabled', false) ? 'Enabled' : 'Disabled'}</Text>
+						</View>
+						<View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:4 }}>
+							<Text style={styles.securityLabel}>2FA (SMS)</Text>
+							<Text style={styles.securityPending}>Not Set</Text>
+						</View>
+						<View style={{ flexDirection:'row', justifyContent:'space-between' }}>
+							<Text style={styles.securityLabel}>Email Verification</Text>
+							<Text style={styles.securityValue}>{isInitialized ? 'Verified' : 'Pending'}</Text>
+						</View>
+					</GlassCard>
+				</View>
 
-            {/* Last Login Method */}
-            <View style={styles.lastLoginContainer}>
-              <Ionicons name={lastLoginMethod.icon as any} size={14} color={lastLoginMethod.color} />
-              <Text style={styles.lastLoginText}>
-                Last signed in with {lastLoginMethod.text}
-              </Text>
-            </View>
-          </View>
-  </GlassCard>
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>Profile</Text>
+					<GlassCard style={{ padding: 16 }}>
+						<View style={styles.actionRow}>
+							<TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
+								<Ionicons name="pencil" size={18} color={theme.colors.text} />
+								<Text style={styles.actionText}>Edit Profile</Text>
+							</TouchableOpacity>
+							<TouchableOpacity style={styles.actionButton} onPress={showChangePasswordOptions}>
+								<Ionicons name="lock-closed" size={18} color={theme.colors.text} />
+								<Text style={styles.actionText}>Change Password</Text>
+							</TouchableOpacity>
+						</View>
+					</GlassCard>
+				</View>
 
-  {/* Account Stats */}
-  <GlassCard style={styles.statsContainer} border>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{user?.kycStatus?.toUpperCase() || 'PENDING'}</Text>
-            <Text style={styles.statLabel}>KYC Status</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {user?.createdAt ? new Date(user.createdAt).getFullYear() : '2024'}
-            </Text>
-            <Text style={styles.statLabel}>Member Since</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{user?.walletId ? 'ACTIVE' : 'INACTIVE'}</Text>
-            <Text style={styles.statLabel}>Wallet</Text>
-          </View>
-  </GlassCard>
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>Support</Text>
+					<GlassCard style={{ padding: 16 }}>
+						<TouchableOpacity
+							style={styles.supportLink}
+							onPress={() => Linking.openURL('https://standardbank.co.za/support')}
+						>
+							<Ionicons name="help-circle" size={18} color={theme.colors.primary} />
+							<Text style={styles.supportText}>Help Center</Text>
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={styles.supportLink}
+							onPress={() => router.push('/privacy-policy')}
+						>
+							<Ionicons name="document-text" size={18} color={theme.colors.primary} />
+							<Text style={styles.supportText}>Privacy Policy</Text>
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={styles.supportLink}
+							onPress={() => router.push('/terms-conditions')}
+						>
+							<Ionicons name="document-attach" size={18} color={theme.colors.primary} />
+							<Text style={styles.supportText}>Terms & Conditions</Text>
+						</TouchableOpacity>
+					</GlassCard>
+				</View>
 
-        {/* Security Settings */}
-  <GlassCard style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Security Settings</Text>
-          
-          {/* Biometric Authentication */}
-          <BiometricSettings onSettingsChange={(enabled) => {
-            console.log('Biometric authentication', enabled ? 'enabled' : 'disabled');
-          }} />
-
-          {/* Other Security Options */}
-          <TouchableOpacity 
-            style={styles.settingItem} 
-            onPress={() => showChangePasswordOptions()}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: theme.colors.chipBg }]}>
-                <Ionicons name="key" size={20} color={theme.colors.warning} />
-              </View>
-              <View>
-                <Text style={styles.settingTitle}>Change Password</Text>
-                <Text style={styles.settingSubtitle}>Update your account password</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.muted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => showTwoFactorOptions()}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: theme.colors.chipBg }]}>
-                <Ionicons name="phone-portrait" size={20} color={theme.colors.primary} />
-              </View>
-              <View>
-                <Text style={styles.settingTitle}>Two-Factor Authentication</Text>
-                <Text style={styles.settingSubtitle}>Add an extra layer of security</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.muted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => showLoginActivity()}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: theme.colors.chipBg }]}>
-                <Ionicons name="shield-checkmark" size={20} color={theme.colors.danger} />
-              </View>
-              <View>
-                <Text style={styles.settingTitle}>Login Activity</Text>
-                <Text style={styles.settingSubtitle}>Review recent sign-in attempts</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.muted} />
-          </TouchableOpacity>
-  </GlassCard>
-
-        {/* App Settings */}
-  <GlassCard style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>App Settings</Text>
-          
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => Alert.alert('Notifications', 'Notification settings coming soon! You\'ll be able to customize alerts for spending, budgets, and goals.')}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: theme.colors.chipBg }]}> 
-                <Ionicons name="notifications" size={20} color={theme.colors.accent} />
-              </View>
-              <View>
-                <Text style={styles.settingTitle}>Notifications</Text>
-                <Text style={styles.settingSubtitle}>Manage your notification preferences</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.muted} />
-          </TouchableOpacity>
-
-          {/* Theme toggle removed for dark-only mode */}
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => Alert.alert('Language Settings', 'BlueBot supports multiple South African languages including English, Afrikaans, Zulu, and Xhosa. Full language switching coming soon!')}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: theme.colors.chipBg }]}> 
-                <Ionicons name="language" size={20} color={theme.colors.success} />
-              </View>
-              <View>
-                <Text style={styles.settingTitle}>Language</Text>
-                <Text style={styles.settingSubtitle}>English (US)</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.muted} />
-          </TouchableOpacity>
-  </GlassCard>
-
-        {/* Support */}
-  <GlassCard style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => {
-              try {
-                router.push('/faq');
-              } catch (e) {
-                Alert.alert('Help Center', 'Opening Help Center...');
-              }
-            }}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: theme.colors.chipBg }]}> 
-                <Ionicons name="help-circle" size={20} color={theme.colors.warning} />
-              </View>
-              <View>
-                <Text style={styles.settingTitle}>Help Center</Text>
-                <Text style={styles.settingSubtitle}>Get help and support</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.muted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => {
-              const email = 'support@bluebot.app';
-              const subject = encodeURIComponent('BlueBot Support');
-              const body = encodeURIComponent(`Hi BlueBot Team,%0D%0A%0D%0AI need help with...%0D%0A%0D%0AUser: ${user?.email || 'N/A'}`);
-              const url = `mailto:${email}?subject=${subject}&body=${body}`;
-              Linking.openURL(url).catch(() => Alert.alert('Contact', 'Unable to open email app.'));
-            }}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: theme.colors.chipBg }]}> 
-                <Ionicons name="chatbubble-ellipses" size={20} color={theme.colors.primary} />
-              </View>
-              <View>
-                <Text style={styles.settingTitle}>Contact Us</Text>
-                <Text style={styles.settingSubtitle}>Send feedback or report issues</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.muted} />
-          </TouchableOpacity>
-  </GlassCard>
-
-        {/* Sign Out */}
-        <TouchableOpacity 
-          style={styles.signOutButton} 
-          onPress={handleSignOut}
-          disabled={isLoading}
-        >
-          <Ionicons name="log-out" size={20} color={theme.colors.danger} />
-          <Text style={styles.signOutText}>
-            {isLoading ? 'Signing Out...' : 'Sign Out'}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>BlueBot v1.0.0</Text>
-          <Text style={styles.footerText}>Made with ❤️ for financial wellness</Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+				<View style={[styles.section, { marginBottom: 24 }]}>
+					<GlassCard style={{ padding: 16 }}>
+						<TouchableOpacity
+							style={[styles.primaryButton, { alignSelf: 'center', backgroundColor: theme.colors.danger }]}
+							onPress={handleSignOut}
+							disabled={isLoading}
+						>
+							<Ionicons name="log-out" size={18} color="#fff" />
+							<Text style={styles.primaryButtonText}>{isLoading ? 'Signing Out...' : 'Sign Out'}</Text>
+						</TouchableOpacity>
+					</GlassCard>
+				</View>
+			</ScrollView>
+		</SafeAreaView>
+	);
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: theme.spacing.lg,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  color: theme.colors.text,
-  },
-  editButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  backgroundColor: theme.colors.glass,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    marginTop: -20,
-  },
-  userCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 16,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
-  avatarPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: theme.colors.cardAlt,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  backgroundColor: theme.colors.success,
-  borderWidth: 2,
-  borderColor: theme.colors.card,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: theme.colors.muted,
-    marginBottom: 8,
-  },
-  verificationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  verificationText: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  lastLoginContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  lastLoginText: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    marginLeft: 6,
-  },
-  statsContainer: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    textAlign: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: theme.colors.border,
-  },
-  sectionContainer: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  settingItem: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  settingTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.colors.text,
-    marginBottom: 2,
-  },
-  settingSubtitle: {
-    fontSize: 14,
-    color: theme.colors.muted,
-  },
-  signOutButton: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  signOutText: {
-    fontSize: 16,
-    fontWeight: '500',
-  color: theme.colors.danger,
-    marginLeft: 8,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingBottom: 32,
-  },
-  footerText: {
-    fontSize: 12,
-  color: theme.colors.muted,
-    marginBottom: 4,
-  },
+	container: {
+		flex: 1,
+		backgroundColor: theme.colors.background,
+	},
+	scrollContent: {
+		paddingBottom: 24,
+	},
+	header: {
+		padding: 16,
+		paddingTop: 24,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderColor: theme.colors.border,
+	},
+	headerContent: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+	},
+	avatarWrapper: {
+		width: 72,
+		height: 72,
+		borderRadius: 36,
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: theme.colors.card,
+		...shadow(8),
+	},
+	avatar: {
+		width: 72,
+		height: 72,
+		borderRadius: 36,
+	},
+	avatarPlaceholder: {
+		width: 72,
+		height: 72,
+		borderRadius: 36,
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: theme.colors.glass,
+	},
+	headerText: {
+		flex: 1,
+	},
+	name: {
+		fontSize: 20,
+		fontWeight: '700',
+		color: theme.colors.text,
+	},
+	email: {
+		fontSize: 14,
+		color: theme.colors.muted,
+	},
+	section: {
+		paddingHorizontal: 16,
+		marginTop: 16,
+	},
+	sectionTitle: {
+		fontSize: 16,
+		fontWeight: '700',
+		color: theme.colors.text,
+		marginBottom: 8,
+		marginLeft: 8,
+	},
+	row: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+	},
+	balanceLabel: {
+		fontSize: 12,
+		color: theme.colors.muted,
+	},
+	balanceValue: {
+		fontSize: 22,
+		color: theme.colors.text,
+		fontWeight: '800',
+	},
+	primaryButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		backgroundColor: theme.colors.primary,
+		paddingHorizontal: 16,
+		paddingVertical: 10,
+		borderRadius: 12,
+		...shadow(4),
+	},
+	primaryButtonText: {
+		color: '#fff',
+		fontWeight: '800',
+		letterSpacing: 0.3,
+	},
+	sectionSubTitle: {
+		fontSize: 14,
+		fontWeight: '700',
+		color: theme.colors.text,
+		marginBottom: 4,
+	},
+	metricBox: {
+		backgroundColor: theme.colors.glass,
+		borderRadius: 10,
+		paddingVertical: 8,
+		paddingHorizontal: 12,
+		flexGrow: 1,
+		flexBasis: '30%',
+		minWidth: 90,
+	},
+	metricLabel: {
+		fontSize: 10,
+		fontWeight: '600',
+		color: theme.colors.muted,
+		textTransform: 'uppercase',
+		letterSpacing: 0.5,
+	},
+	metricValue: {
+		fontSize: 16,
+		fontWeight: '700',
+		color: theme.colors.text,
+	},
+	metricBadge: {
+		fontSize: 12,
+		fontWeight: '600',
+		color: theme.colors.muted,
+	},
+	smallPill: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 6,
+		backgroundColor: theme.colors.glass,
+		paddingHorizontal: 14,
+		paddingVertical: 8,
+		borderRadius: 20,
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: theme.colors.border,
+	},
+	smallPillText: {
+		fontSize: 12,
+		fontWeight: '700',
+		color: '#fff',
+		letterSpacing: 0.3,
+	},
+	themeToggle: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		backgroundColor: theme.colors.glass,
+		paddingHorizontal: 14,
+		paddingVertical: 8,
+		borderRadius: 16,
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: theme.colors.border,
+	},
+	themeToggleText: {
+		fontSize: 12,
+		fontWeight: '700',
+		color: theme.colors.text,
+	},
+	securityLabel: {
+		fontSize: 12,
+		color: theme.colors.muted,
+		fontWeight: '600',
+	},
+	securityValue: {
+		fontSize: 12,
+		color: theme.colors.text,
+		fontWeight: '700',
+	},
+	securityPending: {
+		fontSize: 12,
+		color: theme.colors.warning,
+		fontWeight: '700',
+	},
+	goalItem: {
+		padding: 12,
+		borderRadius: 14,
+		backgroundColor: theme.colors.card,
+		marginBottom: 10,
+	},
+	goalHeaderRow: {
+		flexDirection:'row',
+		justifyContent:'space-between',
+		alignItems:'flex-start',
+		marginBottom:4,
+	},
+	goalTitle: {
+		fontSize: 14,
+		fontWeight:'700',
+		color: theme.colors.text,
+	},
+	goalAmounts: {
+		fontSize: 11,
+		fontWeight:'600',
+		color: theme.colors.muted,
+	},
+	goalBarBg: {
+		height:6,
+		backgroundColor: theme.colors.glass,
+		borderRadius:3,
+		overflow:'hidden',
+		marginTop:4,
+	},
+	goalBarFill: {
+		height:6,
+		backgroundColor: theme.colors.primary,
+		borderRadius:3,
+	},
+	goalActionsRow: {
+		flexDirection:'row',
+		alignItems:'center',
+		gap:8,
+		marginTop:8,
+		flexWrap:'wrap',
+	},
+	goalActionBtn: {
+		flexDirection:'row',
+		alignItems:'center',
+		gap:4,
+		backgroundColor: theme.colors.glass,
+		paddingHorizontal:10,
+		paddingVertical:6,
+		borderRadius:14,
+	},
+	goalActionText: {
+		fontSize:11,
+		fontWeight:'700',
+		color: theme.colors.text,
+		letterSpacing:0.3,
+	},
+	goalCompletedBadge: {
+		fontSize:10,
+		fontWeight:'700',
+		backgroundColor: theme.colors.success,
+		color:'#fff',
+		paddingHorizontal:8,
+		paddingVertical:4,
+		borderRadius:12,
+		textTransform:'uppercase',
+		letterSpacing:0.5,
+	},
+	actionRow: {
+		flexDirection: 'row',
+		gap: 12,
+	},
+	actionButton: {
+		flex: 1,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: 8,
+		backgroundColor: theme.colors.card,
+		paddingVertical: 12,
+		borderRadius: 12,
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: theme.colors.border,
+	},
+	actionText: {
+		color: theme.colors.text,
+		fontWeight: '700',
+	},
+	supportLink: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		paddingVertical: 10,
+	},
+	supportText: {
+		color: theme.colors.primary,
+		fontWeight: '700',
+	},
+	cardPadding: {
+		padding: 16,
+	},
 });

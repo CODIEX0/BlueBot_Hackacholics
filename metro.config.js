@@ -3,14 +3,11 @@ const path = require('path');
 
 const config = getDefaultConfig(__dirname);
 
-// Ensure we can resolve all SVG and crypto modules properly
+// Ensure we can resolve all SVG modules properly
 config.resolver.alias = {
   ...config.resolver.alias,
   'fbjs/lib/ExecutionEnvironment': require.resolve('fbjs/lib/ExecutionEnvironment'),
   'react-native-svg': path.resolve(__dirname, 'node_modules/react-native-svg'),
-  'crypto': require.resolve('crypto-browserify'),
-  'stream': require.resolve('stream-browserify'),
-  'buffer': require.resolve('buffer'),
   // Alias missing close-icon assets from react-navigation elements
   '@react-navigation/elements/lib/module/assets/close-icon.png': path.resolve(__dirname, 'assets/close-icon.png'),
   '@react-navigation/elements/lib/module/assets/close-icon.svg': path.resolve(__dirname, 'assets/close-icon.svg'),

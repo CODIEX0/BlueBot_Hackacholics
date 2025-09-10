@@ -111,17 +111,4 @@ export interface UserAchievementRecord {
   unlockedAt: string;
 }
 
-/**
- * CryptoWalletRecord Interface
- * Represents a user's crypto wallet
- */
-export interface CryptoWalletRecord {
-  id?: number;
-  userId: string;
-  encryptedPrivateKey: string;
-  publicKey: string;
-  address: string;
-  network: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// Crypto wallet feature removed

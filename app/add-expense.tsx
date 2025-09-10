@@ -1,9 +1,10 @@
 import React from 'react';
+const { useState, useEffect } = React;
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '@/config/theme';
-import { useMobileDatabase } from '@/contexts/MobileDatabaseContext';
+import { useAWS } from '@/contexts/AWSContext';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
@@ -11,7 +12,52 @@ import GlassCard from '@/components/GlassCard';
 
 export default function AddExpenseScreen() {
   const router = useRouter();
-  const { expenses = [], addExpense, updateExpense, deleteExpense, getCategoriesWithBudgets, editingExpenseId, setEditingExpenseId } = useMobileDatabase();
+  // AWS Context with fallback to demo mode
+  const aws = useAWS();
+  const { 
+    expenses = [], 
+    isInitialized,
+    createExpense,
+    updateExpense: awsUpdateExpense,
+    deleteExpense: awsDeleteExpense
+  } = aws || {};
+  
+  // Demo mode fallbacks
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  
+  const addExpense = async (expenseData: any) => {
+    if (isInitialized && createExpense) {
+      await createExpense(expenseData);
+    } else {
+      Alert.alert('Demo Mode', 'Expense would be added in live mode');
+    }
+  };
+
+  const updateExpense = async (id: string, updates: any) => {
+    if (isInitialized && awsUpdateExpense) {
+      await awsUpdateExpense(id, updates);
+    } else {
+      Alert.alert('Demo Mode', 'Expense would be updated in live mode');
+    }
+  };
+
+  const deleteExpense = async (id: string) => {
+    if (isInitialized && awsDeleteExpense) {
+      await awsDeleteExpense(id);
+    } else {
+      Alert.alert('Demo Mode', 'Expense would be deleted in live mode');
+    }
+  };
+
+  const getCategoriesWithBudgets = () => {
+    // Demo categories
+    return [
+      { name: 'Food', budget: 1500, spent: 450 },
+      { name: 'Transport', budget: 800, spent: 320 },
+      { name: 'Shopping', budget: 600, spent: 180 },
+      { name: 'Entertainment', budget: 400, spent: 120 }
+    ];
+  };
   const categories = getCategoriesWithBudgets().map(c => c.name);
 
   const [amount, setAmount] = React.useState('');
@@ -28,11 +74,11 @@ export default function AddExpenseScreen() {
 
   React.useEffect(() => {
     if (isEdit) {
-      const target = expenses.find((e) => e.id === editingId);
+      const target = expenses.find((e) => e.expenseId === editingId?.toString());
       if (target) {
         setAmount(String(target.amount));
         setCategory(target.category);
-        setMerchant(target.merchant);
+        setMerchant(target.description);
         setDate(target.date);
         setDescription(target.description || '');
       }
@@ -46,7 +92,7 @@ export default function AddExpenseScreen() {
     try {
       setSaving(true);
       if (isEdit && editingId) {
-        await updateExpense(editingId, {
+        await updateExpense(editingId.toString(), {
           amount: value,
           category,
           merchant: merchant.trim(),
@@ -76,7 +122,7 @@ export default function AddExpenseScreen() {
     }
   };
 
-  const onDelete = (specificId?: number) => {
+  const onDelete = (specificId?: string) => {
     const targetId = typeof specificId === 'number' ? specificId : editingId;
     if (!targetId) return;
     Alert.alert(
@@ -191,21 +237,21 @@ export default function AddExpenseScreen() {
           <View style={{ marginTop: 16 }}>
             <Text style={[styles.sectionTitle]}>Recent Expenses</Text>
             {expenses.slice(0, 5).map((e) => (
-              <GlassCard key={e.id} style={styles.listItem} border>
+              <GlassCard key={e.expenseId} style={styles.listItem} border>
                 <View style={styles.listLeft}>
                   <View style={styles.listIcon}> 
                     <Ionicons name="card" size={16} color={theme.colors.accent} />
                   </View>
                   <View>
-                    <Text style={styles.itemTitle}>{e.merchant}</Text>
+                    <Text style={styles.itemTitle}>{e.description}</Text>
                     <Text style={styles.itemSub}>R{e.amount.toFixed(2)} • {e.category} • {e.date}</Text>
                   </View>
                 </View>
                 <View style={styles.listActions}>
-                  <TouchableOpacity onPress={() => { setEditingExpenseId(e.id); router.push('/add-expense'); }} style={styles.actionBtn}>
+                  <TouchableOpacity onPress={() => { setEditingExpenseId(e.expenseId); router.push('/add-expense'); }} style={styles.actionBtn}>
                     <Ionicons name="create-outline" size={18} color={theme.colors.text} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => { onDelete(e.id); }} style={styles.actionBtn}>
+                  <TouchableOpacity onPress={() => { onDelete(e.expenseId); }} style={styles.actionBtn}>
                     <Ionicons name="trash-outline" size={18} color={theme.colors.danger} />
                   </TouchableOpacity>
                 </View>

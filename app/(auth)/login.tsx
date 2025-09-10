@@ -20,14 +20,15 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
-import { useMobileAuth } from '@/contexts/MobileAuthContext';
+import { useAWS } from '@/contexts/AWSContext';
+import { theme } from '@/config/theme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn } = useMobileAuth();
+  const { signIn } = useAWS();
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -36,7 +37,8 @@ export default function LoginScreen() {
       return;
     }
 
-    if (!isValidEmail(email)) {
+    // If identifier contains '@', validate as email. Otherwise treat as username.
+    if (email.includes('@') && !isValidEmail(email)) {
       Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
@@ -77,7 +79,7 @@ export default function LoginScreen() {
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <LinearGradient
-                colors={['#1E3A8A', '#3B82F6']}
+                colors={theme.gradients.purple as any}
                 style={styles.logo}
               >
                 <Text style={styles.logoText}>B</Text>
@@ -91,9 +93,9 @@ export default function LoginScreen() {
 
           {/* Login Form */}
           <View style={styles.formContainer}>
-            {/* Email Input */}
+            {/* Email or Username Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Email Address</Text>
+              <Text style={styles.inputLabel}>Email or Username</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="mail-outline" size={20} color="#64748B" style={styles.inputIcon} />
                 <TextInput
@@ -138,7 +140,7 @@ export default function LoginScreen() {
 
             {/* Forgot Password Link */}
             <TouchableOpacity style={styles.forgotPassword}>
-              <Link href="/forgot-password" asChild>
+              <Link href="/(auth)/forgot-password" asChild>
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </Link>
             </TouchableOpacity>
@@ -153,7 +155,7 @@ export default function LoginScreen() {
               disabled={!isFormValid || isLoading}
             >
               <LinearGradient
-                colors={isFormValid ? ['#1E3A8A', '#3B82F6'] : ['#9CA3AF', '#6B7280']}
+                colors={isFormValid ? (theme.gradients.purple as any) : (['#9CA3AF', '#6B7280'] as any)}
                 style={styles.loginButtonGradient}
               >
                 {isLoading ? (
@@ -217,7 +219,7 @@ export default function LoginScreen() {
           {/* Sign Up Link */}
           <View style={styles.signupContainer}>
             <Text style={styles.signupText}>Don't have an account? </Text>
-            <Link href="/register" asChild>
+              <Link href="/(auth)/register" asChild>
               <TouchableOpacity>
                 <Text style={styles.signupLink}>Sign Up</Text>
               </TouchableOpacity>
@@ -239,7 +241,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.colors.background,
   },
   keyboardView: {
     flex: 1,

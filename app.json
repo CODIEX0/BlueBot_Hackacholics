@@ -41,7 +41,6 @@
       "expo-font", 
       "expo-web-browser",
       "expo-camera",
-      "expo-barcode-scanner",
       "expo-local-authentication",
       "expo-secure-store",
       "expo-sqlite"

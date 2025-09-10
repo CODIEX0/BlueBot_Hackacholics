@@ -11,8 +11,6 @@ import MultiAI from '../../services/MultiAI';
 // Mock external dependencies for testing
 jest.mock('expo-secure-store');
 jest.mock('@react-native-async-storage/async-storage');
-jest.mock('../../services/cryptoWallet_Production');
-jest.mock('../../services/QRPaymentService_Production');
 jest.mock('../../services/receiptOCR_Production');
 
 // Mock network calls

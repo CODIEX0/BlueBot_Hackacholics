@@ -1,155 +1,327 @@
-import { Platform } from 'react-native';
+/**
+ * Standard Bank Service
+ * Core service for Standard Bank customer features and financial products
+ */
 
-export type SBProduct = {
+export interface StandardBankProduct {
   id: string;
   name: string;
-  category: string;
-  description?: string;
-  eligibility?: string;
-  feesNote?: string;
-  link: string;
-  keywords?: string[];
-  updatedAt?: string;
-};
+  type: 'savings' | 'checking' | 'credit' | 'investment' | 'loan';
+  description: string;
+  features: string[];
+  eligibility: string[];
+  interestRate?: string;
+  fees?: string[];
+  minimumBalance?: number;
+}
 
-export type Suggestion = {
-  product: SBProduct;
-  reason: string;
-  disclaimer: string;
-};
+export interface StandardBankCustomer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  accountNumber: string;
+  branch: string;
+  accountType: string;
+  balance: number;
+  creditScore?: number;
+  isActive: boolean;
+}
 
-const DEFAULT_DISCLAIMER =
-  'Informational only — not financial advice. Product details may change. Verify on the official Standard Bank website before acting.';
+export interface FinancialGoal {
+  id: string;
+  title: string;
+  description: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: string;
+  category: 'savings' | 'investment' | 'debt_repayment' | 'emergency_fund';
+  priority: 'high' | 'medium' | 'low';
+}
 
-class StandardBankService {
-  private catalog: SBProduct[] = [];
-  private lastLoaded: number = 0;
-  private loading: Promise<void> | null = null;
+export interface BudgetCategory {
+  id: string;
+  name: string;
+  allocated: number;
+  spent: number;
+  remaining: number;
+  color: string;
+  icon: string;
+}
 
-  async ensureCatalog(force = false) {
-    if (this.catalog.length && !force && Date.now() - this.lastLoaded < 1000 * 60 * 60 * 12) {
-      return; // cache for up to 12 hours
-    }
-    if (this.loading) return this.loading;
+export class StandardBankService {
+  private static instance: StandardBankService;
+  private products: StandardBankProduct[] = [];
+  private customer: StandardBankCustomer | null = null;
 
-    this.loading = this.loadCatalog().finally(() => {
-      this.loading = null;
-    });
-    return this.loading;
+  private constructor() {
+    this.initializeProducts();
   }
 
-  private async loadCatalog() {
-    // Try remote URL first (optional)
-    const url = process.env.EXPO_PUBLIC_SB_CATALOG_URL;
-    if (url) {
-      try {
-        const resp = await fetch(url, { method: 'GET' });
-        if (resp.ok) {
-          const data = (await resp.json()) as SBProduct[];
-          if (Array.isArray(data)) {
-            this.catalog = data;
-            this.lastLoaded = Date.now();
-            return;
-          }
-        }
-      } catch {
-        // ignore and fall back to local
+  public static getInstance(): StandardBankService {
+    if (!StandardBankService.instance) {
+      StandardBankService.instance = new StandardBankService();
+    }
+    return StandardBankService.instance;
+  }
+
+  private initializeProducts(): void {
+    this.products = [
+      {
+        id: 'sb_savings_classic',
+        name: 'MyMo Classic Savings',
+        type: 'savings',
+        description: 'A flexible savings account with competitive interest rates',
+        features: [
+          'No monthly fees',
+          'Competitive interest rates',
+          'Online and mobile banking',
+          'Free ATM access at Standard Bank ATMs'
+        ],
+        eligibility: [
+          'South African citizen or permanent resident',
+          'Minimum age 18 years',
+          'Valid ID document'
+        ],
+        interestRate: '4.5% p.a.',
+        minimumBalance: 0
+      },
+      {
+        id: 'sb_checking_elite',
+        name: 'Elite Cheque Account',
+        type: 'checking',
+        description: 'Premium banking with exclusive benefits',
+        features: [
+          'Unlimited transactions',
+          'Premium customer service',
+          'Travel insurance',
+          'Concierge services'
+        ],
+        eligibility: [
+          'Minimum monthly income R30,000',
+          'Good credit history',
+          'Valid ID and proof of income'
+        ],
+        fees: ['R299 monthly fee'],
+        minimumBalance: 25000
+      },
+      {
+        id: 'sb_credit_classic',
+        name: 'Standard Bank Credit Card',
+        type: 'credit',
+        description: 'Flexible credit card for everyday purchases',
+        features: [
+          'Contactless payments',
+          'Reward points',
+          'Purchase protection',
+          'Emergency cash advances'
+        ],
+        eligibility: [
+          'Minimum monthly income R5,000',
+          'Good credit record',
+          'Existing Standard Bank customer'
+        ],
+        interestRate: '22.5% p.a.'
       }
-    }
-
-    // Fallback to local bundled JSON
-    try {
-      const localData = require('../data/standard-bank-products.json');
-      this.catalog = (localData as SBProduct[]) || [];
-      this.lastLoaded = Date.now();
-    } catch {
-      this.catalog = [];
-      this.lastLoaded = Date.now();
-    }
-  }
-
-  getCatalog(): SBProduct[] {
-    return this.catalog;
-  }
-
-  suggestProducts(input: { message: string; context?: any }, limit: number = 3): Suggestion[] {
-    const text = `${input.message || ''}`.toLowerCase();
-    const ctx = input.context || {};
-
-    // Simple intent heuristics
-    const intents: Array<{ match: (t: string) => boolean; categories: string[]; reason: (p: SBProduct) => string }>= [
-      {
-        match: (t) => /(open|new).*(account)|bank account|debit card|atm/.test(t),
-        categories: ['Accounts'],
-        reason: (p) => `You mentioned accounts. ${p.name} is a popular option in the ${p.category} category.`
-      },
-      {
-        match: (t) => /(savings?|interest|save|stash|emergency fund)/.test(t),
-        categories: ['Savings'],
-        reason: (p) => `For saving goals, ${p.name} could fit with flexible access and competitive rates.`
-      },
-      {
-        match: (t) => /(loan|borrow|credit|personal loan)/.test(t),
-        categories: ['Loans'],
-        reason: (p) => `${p.name} may suit short-to-medium term borrowing needs.`
-      },
-      {
-        match: (t) => /(home|mortgage|bond|property)/.test(t),
-        categories: ['Home Loans'],
-        reason: (p) => `Considering a home? ${p.name} is a core product in ${p.category}.`
-      },
-      {
-        match: (t) => /(car|vehicle|auto|vaf)/.test(t),
-        categories: ['Vehicle & Asset Finance'],
-        reason: (p) => `${p.name} is designed for vehicle and asset purchases.`
-      },
-      {
-        match: (t) => /(student|study|uni|university|college)/.test(t),
-        categories: ['Student'],
-        reason: (p) => `${p.name} targets students and study-related expenses.`
-      },
-      {
-        match: (t) => /(business|merchant|pos|sme|startup)/.test(t),
-        categories: ['Business'],
-        reason: (p) => `${p.name} supports small business banking and merchant needs.`
-      },
-      {
-        match: (t) => /(international|forex|fx|overseas|travel)/.test(t),
-        categories: ['Foreign Exchange'],
-        reason: (p) => `${p.name} helps with cross-border spend and foreign currency.`
-      },
-      {
-        match: (t) => /(insurance|cover|funeral|life|car insurance)/.test(t),
-        categories: ['Insurance'],
-        reason: (p) => `${p.name} provides insurance coverage in the ${p.category} category.`
-      },
-      {
-        match: (t) => /(credit\s*card|card limit|card fees)/.test(t),
-        categories: ['Credit Cards'],
-        reason: (p) => `${p.name} is a credit card option that might fit your needs.`
-      },
     ];
+  }
 
-    const matchedCategories = new Set<string>();
-    intents.forEach((i) => { if (i.match(text)) i.categories.forEach(c => matchedCategories.add(c)); });
+  // Product Methods
+  public getProducts(): StandardBankProduct[] {
+    return this.products;
+  }
 
-    // If nothing matched, provide zero suggestions
-    if (matchedCategories.size === 0) return [];
+  public getProductsByType(type: StandardBankProduct['type']): StandardBankProduct[] {
+    return this.products.filter(product => product.type === type);
+  }
 
-    const results: Suggestion[] = [];
-    const cats = Array.from(matchedCategories);
-    for (const cat of cats) {
-      const prod = this.catalog.filter(p => p.category === cat);
-      for (const p of prod) {
-        const intent = intents.find(i => i.categories.includes(cat))!;
-        results.push({ product: p, reason: intent.reason(p), disclaimer: DEFAULT_DISCLAIMER });
-        if (results.length >= limit) break;
+  public getProductById(id: string): StandardBankProduct | undefined {
+    return this.products.find(product => product.id === id);
+  }
+
+  // Customer Methods
+  public setCustomer(customer: StandardBankCustomer): void {
+    this.customer = customer;
+  }
+
+  public getCustomer(): StandardBankCustomer | null {
+    return this.customer;
+  }
+
+  // Demo customer for testing
+  public getDemoCustomer(): StandardBankCustomer {
+    return {
+      id: 'demo_001',
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      phone: '+27 11 123 4567',
+      accountNumber: '12345678901',
+      branch: 'Sandton City',
+      accountType: 'Elite Cheque Account',
+      balance: 45750.00,
+      creditScore: 720,
+      isActive: true
+    };
+  }
+
+  // Financial Planning Methods
+  public getDefaultBudgetCategories(): BudgetCategory[] {
+    return [
+      {
+        id: 'housing',
+        name: 'Housing',
+        allocated: 12000,
+        spent: 11800,
+        remaining: 200,
+        color: '#3B82F6',
+        icon: 'home'
+      },
+      {
+        id: 'transportation',
+        name: 'Transportation',
+        allocated: 3500,
+        spent: 2890,
+        remaining: 610,
+        color: '#10B981',
+        icon: 'car'
+      },
+      {
+        id: 'food',
+        name: 'Food & Dining',
+        allocated: 4000,
+        spent: 3245,
+        remaining: 755,
+        color: '#F59E0B',
+        icon: 'restaurant'
+      },
+      {
+        id: 'entertainment',
+        name: 'Entertainment',
+        allocated: 2000,
+        spent: 1450,
+        remaining: 550,
+        color: '#EF4444',
+        icon: 'game-controller'
+      },
+      {
+        id: 'savings',
+        name: 'Savings',
+        allocated: 5000,
+        spent: 5000,
+        remaining: 0,
+        color: '#8B5CF6',
+        icon: 'piggy-bank'
       }
-      if (results.length >= limit) break;
-    }
+    ];
+  }
 
-    return results;
+  public getDefaultFinancialGoals(): FinancialGoal[] {
+    return [
+      {
+        id: 'emergency_fund',
+        title: 'Emergency Fund',
+        description: 'Build a 6-month emergency fund for unexpected expenses',
+        targetAmount: 50000,
+        currentAmount: 15000,
+        targetDate: '2025-12-31',
+        category: 'emergency_fund',
+        priority: 'high'
+      },
+      {
+        id: 'vacation_savings',
+        title: 'Holiday Trip',
+        description: 'Save for a family vacation to Cape Town',
+        targetAmount: 25000,
+        currentAmount: 8500,
+        targetDate: '2025-06-30',
+        category: 'savings',
+        priority: 'medium'
+      },
+      {
+        id: 'home_deposit',
+        title: 'Home Deposit',
+        description: 'Save for a house deposit',
+        targetAmount: 200000,
+        currentAmount: 45000,
+        targetDate: '2027-01-01',
+        category: 'investment',
+        priority: 'high'
+      }
+    ];
+  }
+
+  // Financial Insights
+  public generateFinancialInsights(expenses: any[]): string[] {
+    const insights: string[] = [];
+    
+    // Calculate total spending
+    const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    
+    if (totalSpent > 20000) {
+      insights.push("Your spending this month is higher than recommended. Consider reviewing your budget.");
+    }
+    
+    // Category analysis
+    const categories = expenses.reduce((acc, expense) => {
+      acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+      return acc;
+    }, {});
+    
+    const foodSpending = categories['Food'] || 0;
+    if (foodSpending > 4000) {
+      insights.push("Your food spending is above average. Consider meal planning to reduce costs.");
+    }
+    
+    const entertainmentSpending = categories['Entertainment'] || 0;
+    if (entertainmentSpending > 2500) {
+      insights.push("Entertainment expenses are high. Look for free or low-cost activities.");
+    }
+    
+    // Positive insights
+    if (totalSpent < 15000) {
+      insights.push("Great job! Your spending is well within budget this month.");
+    }
+    
+    if (insights.length === 0) {
+      insights.push("Your spending patterns look healthy. Keep up the good work!");
+    }
+    
+    return insights;
+  }
+
+  // Product Recommendations
+  public getProductRecommendations(customer: StandardBankCustomer): StandardBankProduct[] {
+    const recommendations: StandardBankProduct[] = [];
+    
+    // High balance - recommend investment products
+    if (customer.balance > 50000) {
+      const investment = this.getProductsByType('investment')[0];
+      if (investment) recommendations.push(investment);
+    }
+    
+    // Good credit score - recommend credit products
+    if (customer.creditScore && customer.creditScore > 700) {
+      const credit = this.getProductsByType('credit')[0];
+      if (credit) recommendations.push(credit);
+    }
+    
+    // Always recommend savings
+    const savings = this.getProductsByType('savings')[0];
+    if (savings) recommendations.push(savings);
+    
+    return recommendations;
+  }
+
+  // Web search helpers (best-effort client-side)
+  async searchWeb(query: string) {
+    const mod = await import('./StandardBankWebSearch');
+    return mod.searchStandardBank(query);
+  }
+
+  async fetchRates() {
+    const mod = await import('./StandardBankWebSearch');
+    return mod.getStandardBankRates();
   }
 }
 
-export default new StandardBankService();
+export const standardBankService = StandardBankService.getInstance();

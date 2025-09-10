@@ -20,11 +20,73 @@ export interface CurriculumData {
     recognitions: string[];
   };
   courses: Course[];
+  specializations?: Specialization[];
+  certifications?: Certification[];
+  gamification?: GamificationConfig;
+  personalizedLearning?: PersonalizedLearning;
   learningPaths: LearningPath[];
   achievements: Achievement[];
   progressionSystem: any;
   assessmentFramework: any;
   qualityAssurance: any;
+}
+
+export interface Specialization {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: 'Advanced' | 'Expert';
+  duration: string;
+  category: string;
+  thumbnail: string;
+  xpReward: number;
+  prerequisites: string[];
+  accreditation?: string;
+  lessons: Lesson[];
+}
+
+export interface Certification {
+  id: string;
+  title: string;
+  requirements: {
+    courses: string[];
+    minimumScore: number;
+    timeRequirement: string;
+  };
+  recognition: string;
+  issuer: string;
+  industryRecognition?: string[];
+}
+
+export interface GamificationConfig {
+  achievements: Achievement[];
+  levels: Level[];
+}
+
+export interface Level {
+  level: number;
+  title: string;
+  xpRequired: number;
+  perks: string[];
+}
+
+export interface PersonalizedLearning {
+  assessmentQuiz: {
+    title: string;
+    description: string;
+    questions: number;
+    duration: string;
+    categories: string[];
+  };
+  learningPaths: PersonalizedPath[];
+}
+
+export interface PersonalizedPath {
+  id: string;
+  title: string;
+  target: string;
+  duration: string;
+  courses: string[];
 }
 
 export interface Course {
@@ -88,10 +150,23 @@ export interface Achievement {
 export interface UserProgress {
   completedCourses: string[];
   completedLessons: string[];
+  courseProgress: { [courseId: string]: CourseProgress };
   totalXP: number;
   currentLevel: number;
   achievements: string[];
   lastActive: string;
+  studyStreak: number;
+  totalStudyTime: number;
+}
+
+export interface CourseProgress {
+  courseId: string;
+  completed: boolean;
+  score: number;
+  attempts: number;
+  timeSpent: number;
+  lastAccessed: string;
+  lessonsCompleted: string[];
 }
 
 const CURRICULUM_CACHE_KEY = 'curriculum_data';
@@ -444,11 +519,108 @@ class CurriculumService {
     return {
       completedCourses: [],
       completedLessons: [],
+      courseProgress: {},
       totalXP: 0,
       currentLevel: 1,
       achievements: [],
       lastActive: new Date().toISOString(),
+      studyStreak: 0,
+      totalStudyTime: 0,
     };
+  }
+
+  /**
+   * Get all specializations
+   */
+  async getSpecializations(): Promise<Specialization[]> {
+    try {
+      const curriculum = await this.loadCurriculum();
+      return curriculum.specializations || [];
+    } catch (error) {
+      console.error('Error fetching specializations:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get specialization by ID
+   */
+  async getSpecializationById(id: string): Promise<Specialization | null> {
+    try {
+      const specializations = await this.getSpecializations();
+      return specializations.find(spec => spec.id === id) || null;
+    } catch (error) {
+      console.error('Error fetching specialization:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get available certifications
+   */
+  async getCertifications(): Promise<Certification[]> {
+    try {
+      const curriculum = await this.loadCurriculum();
+      return curriculum.certifications || [];
+    } catch (error) {
+      console.error('Error fetching certifications:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Check certification eligibility
+   */
+  async checkCertificationEligibility(certificationId: string, userProgress: UserProgress): Promise<boolean> {
+    try {
+      const certification = (await this.getCertifications())
+        .find(cert => cert.id === certificationId);
+      
+      if (!certification) return false;
+
+      // Check if all required courses are completed with minimum score
+      const completedCourses = certification.requirements.courses.every(courseId => {
+        const progress = userProgress.courseProgress[courseId];
+        return progress && progress.completed && progress.score >= certification.requirements.minimumScore;
+      });
+
+      return completedCourses;
+    } catch (error) {
+      console.error('Error checking certification eligibility:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get gamification configuration
+   */
+  async getGamificationConfig(): Promise<GamificationConfig | null> {
+    try {
+      const curriculum = await this.loadCurriculum();
+      return curriculum.gamification || null;
+    } catch (error) {
+      console.error('Error fetching gamification config:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get user level based on XP
+   */
+  async getUserLevel(totalXP: number): Promise<Level | null> {
+    try {
+      const gamification = await this.getGamificationConfig();
+      if (!gamification) return null;
+
+      const userLevel = gamification.levels
+        .reverse()
+        .find(level => totalXP >= level.xpRequired);
+
+      return userLevel || gamification.levels[0];
+    } catch (error) {
+      console.error('Error getting user level:', error);
+      return null;
+    }
   }
 }
 

@@ -29,6 +29,8 @@ interface ChatMessage {
       targetAmount: number;
       currentAmount: number;
     }>;
+  userName?: string;
+  dataSharingConsent?: boolean;
   };
 }
 
@@ -51,24 +53,36 @@ interface AIResponse {
   };
 }
 
-// Multi-agent support (five personas)
-type AgentKey = 'blue' | 'penny' | 'sable' | 'zuri' | 'kora';
-type SendOptions = { agent?: AgentKey };
+// Multi-agent support (six personas)
+type AgentKey = 'pepper' | 'penny' | 'sable' | 'zuri' | 'kora' | 'nova';
+type SendOptions = { agent?: AgentKey; temperature?: number };
 
 class MultiAIService {
   private providers: Map<string, AIProvider> = new Map();
-  private currentProvider: string = 'deepseek';
-  private fallbackOrder: string[] = ['deepseek', 'gemini', 'local', 'mock'];
+  private currentProvider: string = 'claude';
+  private fallbackOrder: string[] = ['deepseek', 'gemini', 'openai', 'claude', 'local', 'mock'];
 
   constructor() {
     this.initializeProviders();
+    // Reflect env and choose initial primary
+    this.refreshAvailability();
+    this.currentProvider = this.getPrimaryProvider();
   }
 
   /**
    * Initialize all AI providers
    */
   private initializeProviders() {
-    // DeepSeek - Primary provider (production-ready)
+    // Anthropic Claude via Bedrock or direct API - Primary provider
+    this.providers.set('claude', {
+      name: 'Anthropic Claude',
+      apiKey: process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY || '',
+      baseURL: 'https://api.anthropic.com/v1',
+      model: process.env.EXPO_PUBLIC_ANTHROPIC_MODEL_ID || 'anthropic.claude-opus-4-1-20250805-v1:0',
+      available: !!process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY
+    });
+
+    // DeepSeek - Secondary provider
     this.providers.set('deepseek', {
       name: 'DeepSeek',
       apiKey: process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY || '',
@@ -130,14 +144,13 @@ class MultiAIService {
     });
 
 
-    // Anthropic Claude - High-quality alternative
-    this.providers.set('claude', {
-      name: 'Anthropic Claude',
-      apiKey: process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY || '',
-      baseURL: 'https://api.anthropic.com/v1',
-      model: 'claude-3-haiku-20240307', // Fast and cost-effective
-      available: !!process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY && 
-                process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY.startsWith('sk-ant-')
+    // Optional: Bedrock Realtime Speech placeholders (TTS/STT handled elsewhere)
+    this.providers.set('bedrock-realtime', {
+      name: 'Bedrock Realtime',
+      apiKey: process.env.EXPO_PUBLIC_AWS_ACCESS_KEY_ID ? 'aws-credentials' : undefined,
+      baseURL: 'bedrock-realtime',
+      model: process.env.EXPO_PUBLIC_BEDROCK_REALTIME_MODEL_ID || 'amazon.nova-realtime-v1:0',
+      available: !!process.env.EXPO_PUBLIC_AWS_REGION
     });
 
     // OpenRouter - Community AI API
@@ -156,17 +169,17 @@ class MultiAIService {
       available: process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
     });
 
-    // Update fallback order to prioritize production providers
+    // Update fallback order to prioritize DeepSeek → Gemini → OpenAI → Claude
     this.fallbackOrder = [
-      'deepseek',   // Primary - good balance of quality and cost
-  'gemini',     // Free tier available
-  'huggingface-gpt-oss', // Free-tier friendly via HF Inference (Zephyr)
-  'huggingface-llama',   // Llama OSS
-      'openai',     // Reliable fallback
-      'openrouter', // Add OpenRouter to fallback order
-      'claude',     // High quality alternative
-      'local',      // Offline capability
-      'mock'        // Development only
+      'deepseek',
+      'gemini',
+      'openai',
+      'claude',
+      'huggingface-gpt-oss',
+      'huggingface-llama',
+      'openrouter',
+      'local',
+      'mock'
     ];
   }
 
@@ -179,6 +192,10 @@ class MultiAIService {
     userContext?: ChatMessage['context'],
     options?: SendOptions
   ): Promise<AIResponse> {
+  // Ensure provider availability reflects current env (especially in tests)
+  this.refreshAvailability();
+  // Always prefer primary dynamically (keys may change between calls)
+  this.currentProvider = this.getPrimaryProvider();
     // Input validation
     if (!message || message.trim().length === 0) {
       throw new Error('Message cannot be empty');
@@ -188,14 +205,29 @@ class MultiAIService {
       throw new Error('Message too long. Please keep it under 5000 characters.');
     }
 
-    let lastError: Error | null = null;
+  let lastError: Error | null = null;
+  let rateLimitEncountered = false; // track any 429 across providers
     const attemptedProviders: string[] = [];
 
-    // Try providers in fallback order
-    for (const providerName of this.fallbackOrder) {
+    // Build attempt order: try currentProvider first (if available), then fallbackOrder
+    const attemptOrder = (() => {
+      const current = this.currentProvider;
+      const currentAvailable = this.providers.get(current)?.available;
+      const base = currentAvailable ? [current, ...this.fallbackOrder.filter(p => p !== current)] : [...this.fallbackOrder];
+      // Filter to providers that are currently available (we'll still iterate to set attemptedProviders for error message)
+      return base;
+    })();
+
+    // Try providers in computed order
+  for (const providerName of attemptOrder) {
       const provider = this.providers.get(providerName);
       if (!provider || !provider.available) {
         console.log(`Skipping provider ${providerName}: ${!provider ? 'not found' : 'not available'}`);
+        continue;
+      }
+
+      // Avoid using mock as a last resort after real provider failures in production-style flows
+      if (providerName === 'mock' && attemptedProviders.length > 0) {
         continue;
       }
 
@@ -229,7 +261,7 @@ class MultiAIService {
         };
         
         return response;
-      } catch (error) {
+  } catch (error) {
         console.warn(`Provider ${provider.name} failed:`, error);
         lastError = error as Error;
         
@@ -243,25 +275,53 @@ class MultiAIService {
             console.error(`Provider ${provider.name} has authentication issues`);
           } else if (errorMessage.includes('429')) {
             // Rate limiting - temporary unavailability
+    rateLimitEncountered = true;
             provider.available = false;
-            setTimeout(() => {
-              provider.available = true;
-            }, 60000); // Re-enable after 1 minute
+            {
+              const t = setTimeout(() => {
+                provider.available = true;
+              }, 60000); // Re-enable after 1 minute
+              // In Node test env, avoid keeping the event loop open
+              try {
+                // @ts-ignore - timer may have unref in Node
+                if (typeof (t as any).unref === 'function') (t as any).unref();
+              } catch { /* noop */ }
+            }
           } else if (errorMessage.includes('500') || errorMessage.includes('502') || 
                     errorMessage.includes('503') || errorMessage.includes('504')) {
             // Server errors - temporary unavailability
             provider.available = false;
-            setTimeout(() => {
-              provider.available = true;
-            }, 30000); // Re-enable after 30 seconds
+            {
+              const t = setTimeout(() => {
+                provider.available = true;
+              }, 30000); // Re-enable after 30 seconds
+              // In Node test env, avoid keeping the event loop open
+              try {
+                // @ts-ignore - timer may have unref in Node
+                if (typeof (t as any).unref === 'function') (t as any).unref();
+              } catch { /* noop */ }
+            }
           }
         }
       }
     }
 
-    // If all providers fail, return comprehensive error response
+    // If all providers fail, provide specialized handling for rate limiting
+    if (rateLimitEncountered || (lastError && /429/.test(lastError.message))) {
+      return {
+        message: "I'm currently receiving too many requests. Please wait a moment and try again.",
+        suggestions: ['Wait 30-60 seconds', 'Reduce request frequency'],
+        provider: 'rate-limit',
+        metadata: {
+          error: lastError?.message || 'Rate limited',
+          attemptedProviders,
+          timestamp: new Date().toISOString()
+        }
+      };
+    }
+
+    // When network errors occurred across providers and only mock remains, prefer an error for explicit signal
     const errorMessage = this.buildErrorMessage(lastError, attemptedProviders);
-    
     return {
       message: errorMessage,
       suggestions: [
@@ -286,8 +346,9 @@ class MultiAIService {
       return "I'm currently not connected to any AI services. Please check your configuration and try again.";
     }
 
-    if (error?.message.includes('network') || error?.message.includes('timeout')) {
-      return "I'm having trouble connecting to my AI services due to network issues. Please check your internet connection and try again.";
+    const errMsg = (error?.message || '').toLowerCase();
+    if (errMsg.includes('network') || errMsg.includes('timeout') || errMsg.includes('request failed')) {
+      return "I'm unable to connect to AI services right now (network error). Please check your connection and try again.";
     }
 
     if (error?.message.includes('401') || error?.message.includes('403')) {
@@ -314,13 +375,15 @@ class MultiAIService {
     const provider = this.providers.get(providerName);
     if (!provider) throw new Error(`Provider ${providerName} not found`);
 
-    // Add request timeout and retry logic
-    const maxRetries = 3;
+  // Add minimal retry logic (immediate fallback on failure)
+  const maxRetries = providerName === 'local' ? 2 : 1;
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         switch (providerName) {
+          case 'claude':
+            return await this.sendToClaude(message, conversationHistory, userContext, options);
           case 'deepseek':
             return await this.sendToDeepSeek(message, conversationHistory, userContext, options);
           case 'gemini':
@@ -330,8 +393,8 @@ class MultiAIService {
             return await this.sendToHuggingFace(providerName, message, conversationHistory, userContext, options);
           case 'openai':
             return await this.sendToOpenAI(message, conversationHistory, userContext, options);
-          case 'claude':
-            return await this.sendToClaude(message, conversationHistory, userContext, options);
+          case 'bedrock-realtime':
+            return await this.sendToBedrockRealtime(message, conversationHistory, userContext, options);
           case 'local':
             return await this.sendToLocalLlama(message, conversationHistory, userContext, options);
           case 'mock':
@@ -351,10 +414,8 @@ class MultiAIService {
             throw error;
           }
           if (error.message.includes('429')) {
-            // Rate limiting - wait before retry
-            const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue;
+            // Rate limiting - do not retry this provider, allow fallback to next
+            throw error;
           }
         }
         
@@ -362,8 +423,8 @@ class MultiAIService {
           throw lastError;
         }
         
-        // Brief delay before retry
-        await new Promise(resolve => setTimeout(resolve, 1000));
+  // No additional delay; move on quickly in tests/interactive flows
+  await Promise.resolve();
       }
     }
 
@@ -394,7 +455,7 @@ class MultiAIService {
         model: provider.model,
         messages: messages,
         max_tokens: 500,
-        temperature: 0.7,
+  temperature: options?.temperature ?? 0.7,
         stream: false
       })
     });
@@ -404,11 +465,29 @@ class MultiAIService {
     }
 
     const data = await response.json();
-    const aiMessage = data.choices[0]?.message?.content || 'Sorry, I couldn\'t process that request.';
+    const aiMessage = data.choices?.[0]?.message?.content || 'Sorry, I couldn\'t process that request.';
 
     return {
       ...this.parseAIResponse(aiMessage),
-      provider: 'DeepSeek'
+      provider: 'DeepSeek',
+      confidence: 0.9
+    };
+  }
+
+  /**
+   * Bedrock Realtime (stub): returns guidance message until streaming is hooked
+   */
+  private async sendToBedrockRealtime(
+    message: string,
+    conversationHistory: ChatMessage[],
+    userContext?: ChatMessage['context'],
+    options?: SendOptions
+  ): Promise<AIResponse> {
+    return {
+      message:
+        'Realtime voice is enabled via AWS Bedrock Realtime models, but streaming audio requires a native/WebSocket integration. Your message was received. You can use text chat meanwhile.',
+      provider: 'Bedrock Realtime',
+      confidence: 0.5,
     };
   }
 
@@ -442,7 +521,7 @@ class MultiAIService {
             }]
           }],
           generationConfig: {
-            temperature: 0.7,
+            temperature: options?.temperature ?? 0.7,
             maxOutputTokens: 500,
             topP: 0.8,
             topK: 10
@@ -467,11 +546,13 @@ class MultiAIService {
     }
 
     const data = await response.json();
-    const aiMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I couldn\'t process that request.';
+    const aiMessage = data.candidates?.[0]?.content?.parts?.[0]?.text
+      || data.choices?.[0]?.message?.content
+      || 'Sorry, I couldn\'t process that request.';
 
     return {
       ...this.parseAIResponse(aiMessage),
-      provider: 'Gemini',
+  provider: 'Google Gemini',
       confidence: data.candidates?.[0]?.safetyRatings ? 0.9 : 0.8
     };
   }
@@ -502,7 +583,7 @@ class MultiAIService {
         model: provider.model,
         messages: messages,
         max_tokens: 500,
-        temperature: 0.7,
+  temperature: options?.temperature ?? 0.7,
         top_p: 0.9,
         frequency_penalty: 0.1,
         presence_penalty: 0.1,
@@ -516,7 +597,9 @@ class MultiAIService {
     }
 
     const data = await response.json();
-    const aiMessage = data.choices[0]?.message?.content || 'Sorry, I couldn\'t process that request.';
+    const aiMessage = data.choices?.[0]?.message?.content
+      || data.content?.[0]?.text
+      || 'Sorry, I couldn\'t process that request.';
 
     return {
       ...this.parseAIResponse(aiMessage),
@@ -558,7 +641,7 @@ class MultiAIService {
       body: JSON.stringify({
         model: provider.model,
         max_tokens: 500,
-        temperature: 0.7,
+  temperature: options?.temperature ?? 0.7,
         system: systemPrompt,
         messages: messages
       })
@@ -570,7 +653,9 @@ class MultiAIService {
     }
 
     const data = await response.json();
-    const aiMessage = data.content?.[0]?.text || 'Sorry, I couldn\'t process that request.';
+    const aiMessage = data.content?.[0]?.text
+      || data.choices?.[0]?.message?.content
+      || 'Sorry, I couldn\'t process that request.';
 
     return {
       ...this.parseAIResponse(aiMessage),
@@ -629,7 +714,7 @@ class MultiAIService {
         prompt: fullPrompt,
         stream: false,
         options: {
-          temperature: 0.7,
+          temperature: options?.temperature ?? 0.7,
           top_p: 0.8,
           top_k: 40,
           max_tokens: 500,
@@ -739,15 +824,17 @@ class MultiAIService {
    */
   private buildSystemPrompt(userContext?: ChatMessage['context'], agent?: AgentKey): string {
     const personas: Record<AgentKey, string> = {
-      blue: `You are Blue, a Standard Bank specialist. Answer questions about Standard Bank products, accounts, cards, loans, fees, and processes. Prefer Standard Bank options and add short disclaimers. Keep answers concise and SA-specific.`,
+      pepper: `You are Pepper, a Standard Bank specialist. Answer questions about Standard Bank products, accounts, cards, loans, fees, and processes. Prefer Standard Bank options and add short disclaimers. Keep answers concise and SA-specific.`,
       penny: `You are Penny, a budgeting coach. Focus on budgets, envelopes, spending control, and habit-building with actionable steps for SA users.`,
       sable: `You are Sable, a savings and investing guide. Explain TFSA, ETFs on the JSE, retirement annuities, and risk basics. Educational, not advice.`,
       zuri: `You are Zuri, a financial educator. Explain concepts like credit scores, interest, inflation, POPIA, NCA. Short, structured lessons with module suggestions.`,
-      kora: `You are Kora, a crypto and digital payments assistant. Help with wallets, safety, SA exchanges, and underbanked-friendly options. Always include security reminders.`
+  kora: `You are Kora, a crypto and digital payments assistant. Help with wallets, safety, SA exchanges, and underbanked-friendly options. Always include security reminders.`,
+  nova: `You are Nova, an investing & income growth specialist. Focus on ways to make money legally in South Africa: diversified investing, income strategies (side hustles, freelancing), compliant tax considerations (SARS), consumer protection (POPIA/NCA), and risk awareness. Provide practical, ethical, and compliant guidance; include quick next steps and options.`
     };
 
     const intro = agent ? personas[agent] : `You are BlueBot, a helpful financial assistant specifically designed for South African users. You provide practical, actionable financial advice tailored to the South African context.`;
-    const basePrompt = `${intro}
+  const privacyNote = userContext?.dataSharingConsent === false ? '\n- The user does not consent to data being used for model training. Do not include personally identifying details and avoid storing or reusing content beyond this session.' : '';
+  const basePrompt = `${intro}
 
 Key guidelines:
 - Use South African terminology (Rand, ZAR, SARB, POPIA, SARS, JSE, etc.)
@@ -767,7 +854,7 @@ You help users with:
 - Tax-efficient investing (TFSA, retirement annuities)
 - Debt management under the National Credit Act
 
-Always be encouraging, supportive, and provide specific, actionable advice relevant to South Africa.`;
+Always be encouraging, supportive, and provide specific, actionable advice relevant to South Africa.${privacyNote}`;
 
     if (userContext) {
       let contextInfo = '\n\nCurrent user context:';
@@ -795,6 +882,57 @@ Always be encouraging, supportive, and provide specific, actionable advice relev
     }
 
     return basePrompt;
+  }
+
+  /**
+   * Preselect a provider/model strategy based on agent + message intent.
+   * This is a lightweight hint: it will switch current provider if available.
+   */
+  preselectProvider(agent: AgentKey | undefined, message: string): string | null {
+    const m = (message || '').toLowerCase();
+    // Baseline content-based routing
+    let preferred: string | null = null;
+
+    // Agent-specific preferences
+    switch (agent) {
+      case 'pepper':
+        // Banking processes and FAQs -> Gemini; detailed comparisons -> DeepSeek
+        preferred = /explain|how|what|where|when|process|fees|limit/.test(m) ? 'gemini' : 'deepseek';
+        break;
+      case 'penny':
+        // Budget math/analysis -> DeepSeek; coaching tone -> OpenAI
+        preferred = /analy[sz]e|calc|optimi[sz]e|plan|budget|rule|percent/.test(m) ? 'deepseek' : 'openai';
+        break;
+      case 'sable':
+        // Investing explanations -> Gemini; portfolio analysis -> DeepSeek
+        preferred = /explain|tfsa|etf|jse|risk|diversif|tax/.test(m) ? 'gemini' : 'deepseek';
+        break;
+      case 'nova':
+        // Income ideas/ideation -> OpenAI; ROI/number crunching -> DeepSeek; compliance -> Gemini
+        preferred = /idea|ideas|side hustle|freelanc|business|marketing|copy|pitch|plan/.test(m)
+          ? 'openai'
+          : (/roi|profit|cost|calc|break-even|model|analysis|spreadsheet|projection/.test(m)
+            ? 'deepseek'
+            : 'gemini');
+        break;
+      case 'zuri':
+        // Education/lessons -> Gemini
+        preferred = 'gemini';
+        break;
+      case 'kora':
+        // Crypto safety and walkthroughs -> Gemini; market analysis -> DeepSeek
+        preferred = /safety|wallet|how|explain|setup|kyc|regulat/.test(m) ? 'gemini' : 'deepseek';
+        break;
+      default:
+        break;
+    }
+
+    if (preferred && this.providers.get(preferred)?.available) {
+      this.currentProvider = preferred;
+      this.notifyProviderChange();
+      return preferred;
+    }
+    return null;
   }
 
   /**
@@ -869,6 +1007,13 @@ Always be encouraging, supportive, and provide specific, actionable advice relev
 
     if (suggestions.length > 0) {
       result.suggestions = suggestions.slice(0, 3); // Limit to 3 suggestions
+    } else {
+      // Heuristic: extract actionable sentences as suggestions
+      const sentences = response.split(/(?<=[.!?])\s+/).slice(0, 4);
+      const actionable = sentences.filter(s => /\b(start|create|open|set up|track|reduce|save|invest|review|set|build)\b/i.test(s));
+      if (actionable.length) {
+        result.suggestions = actionable.map(s => s.trim()).slice(0, 3);
+      }
     }
 
     // Add uncertainty/DYOR note if model expresses uncertainty or for all responses as a safety footer
@@ -887,9 +1032,11 @@ Always be encouraging, supportive, and provide specific, actionable advice relev
    * Get available providers
    */
   getAvailableProviders(): string[] {
-    return Array.from(this.providers.entries())
+  // Keep availability fresh per call (env may change in tests)
+  this.refreshAvailability();
+  return Array.from(this.providers.entries())
       .filter(([_, provider]) => provider.available)
-      .map(([name, provider]) => `${name} (${provider.name})`);
+      .map(([name]) => name);
   }
 
   /**
@@ -898,6 +1045,36 @@ Always be encouraging, supportive, and provide specific, actionable advice relev
   getCurrentProvider(): string {
     const provider = this.providers.get(this.currentProvider);
     return provider ? provider.name : 'Unknown';
+  }
+
+  /**
+   * Primary provider key used for initial attempts
+   */
+  getPrimaryProvider(): string {
+  // Refresh to reflect current env
+  this.refreshAvailability();
+  const priority = ['deepseek', 'gemini', 'openai', 'claude', 'openrouter', 'local', 'mock'];
+  const pick = priority.find(k => this.providers.get(k)?.available);
+  return pick || 'mock';
+  }
+
+  /** Refresh availability based on current env variables */
+  refreshAvailability(): void {
+    // Re-evaluate keys and availability flags
+    const setAvail = (key: string, ok: boolean) => {
+      const p = this.providers.get(key);
+      if (p) p.available = ok;
+    };
+  const dsKey = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY || process.env.DEEPSEEK_API_KEY || '';
+  const gmKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
+  const oaKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+  const anKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY || '';
+  setAvail('deepseek', !!dsKey && dsKey.startsWith('sk-'));
+  setAvail('gemini', !!gmKey && gmKey.startsWith('AIza'));
+  setAvail('openai', !!oaKey && oaKey.startsWith('sk-'));
+  setAvail('claude', !!anKey);
+    // mock only in dev/test
+    setAvail('mock', process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test');
   }
 
   /**
@@ -968,7 +1145,7 @@ Always be encouraging, supportive, and provide specific, actionable advice relev
       return testResponse.provider !== 'error';
     } catch (error) {
       console.error(`Provider ${providerName} test failed:`, error);
-      return false;
+  return false;
     }
   }
 

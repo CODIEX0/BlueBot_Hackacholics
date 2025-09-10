@@ -5,6 +5,7 @@
 
 import React from 'react';
 const { useState, useEffect } = React;
+import { useGamification } from '@/contexts/GamificationContext';
 import {
   View,
   Text,
@@ -41,14 +42,24 @@ interface UserLevel {
 }
 
 interface GamificationWidgetProps {
-  currentXP: number;
+  currentXP?: number; // optional; if omitted will use GamificationContext
   onXPChange?: (newXP: number) => void;
 }
 
 export default function GamificationWidget({ currentXP, onXPChange }: GamificationWidgetProps) {
+  // Try to pull from gamification context if available and no explicit XP provided
+  let contextAvailable = false;
+  let ctx: any = null;
+  try {
+    ctx = useGamification();
+    contextAvailable = !!ctx;
+  } catch {}
+  const effectiveXP = currentXP !== undefined ? currentXP : (contextAvailable ? ctx.userStats.totalPoints : 0);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showLevelInfo, setShowLevelInfo] = useState(false);
-  const [animatedXP] = useState(new Animated.Value(currentXP));
+  // Animated XP value (defensive: avoid undefined initialization)
+  const initialXP = typeof effectiveXP === 'number' && !isNaN(effectiveXP) ? effectiveXP : 0;
+  const [animatedXP] = useState(() => new Animated.Value(initialXP));
 
   const levels: UserLevel[] = [
     {
@@ -93,56 +104,39 @@ export default function GamificationWidget({ currentXP, onXPChange }: Gamificati
     },
   ];
 
-  const [achievements, setAchievements] = useState<Achievement[]>([
-    {
-      id: 'first-expense',
-      title: 'First Step',
-      description: 'Add your first expense',
-      emoji: '🎯',
-      xpReward: 50,
-      unlocked: true,
-      unlockedAt: new Date(),
-    },
-    {
-      id: 'budget-keeper',
-      title: 'Budget Keeper',
-      description: 'Stay under budget for a week',
-      emoji: '📊',
-      xpReward: 100,
-      unlocked: false,
-      progress: { current: 3, target: 7 },
-    },
-    {
-      id: 'receipt-scanner',
-      title: 'Receipt Master',
-      description: 'Scan 10 receipts',
-      emoji: '📱',
-      xpReward: 75,
-      unlocked: false,
-      progress: { current: 7, target: 10 },
-    },
-    {
-      id: 'savings-champion',
-      title: 'Savings Champion',
-      description: 'Save money for 30 days straight',
-      emoji: '💰',
-      xpReward: 200,
-      unlocked: false,
-      progress: { current: 12, target: 30 },
-    },
-    {
-      id: 'financial-learner',
-      title: 'Knowledge Seeker',
-      description: 'Complete 5 financial education modules',
-      emoji: '📚',
-      xpReward: 150,
-      unlocked: false,
-      progress: { current: 2, target: 5 },
-    },
-  ]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+
+  // Map context achievements if available; else use a small static fallback
+  useEffect(() => {
+    if (contextAvailable) {
+      const mapped = ctx.achievements.map((a: any) => ({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        emoji: a.iconName === 'trophy' ? '🏆' : a.iconName === 'flame' ? '🔥' : a.iconName === 'camera' ? '📷' : a.iconName === 'book' ? '📚' : '🎯',
+        xpReward: a.points,
+        unlocked: a.unlocked,
+        unlockedAt: a.unlockedAt ? new Date(a.unlockedAt) : undefined,
+        progress: a.progress ? { current: a.progress.current, target: a.progress.target } : undefined,
+      }));
+      setAchievements(mapped);
+    } else {
+      setAchievements([
+        {
+          id: 'first-expense',
+          title: 'First Step',
+          description: 'Add your first expense',
+          emoji: '🎯',
+          xpReward: 50,
+          unlocked: true,
+          unlockedAt: new Date(),
+        },
+      ]);
+    }
+  }, [contextAvailable, ctx?.achievements]);
 
   const getCurrentLevel = () => {
-    return levels.find(level => currentXP >= level.minXP && currentXP <= level.maxXP) || levels[0];
+    return levels.find(level => effectiveXP >= level.minXP && effectiveXP <= level.maxXP) || levels[0];
   };
 
   const getNextLevel = () => {
@@ -156,7 +150,7 @@ export default function GamificationWidget({ currentXP, onXPChange }: Gamificati
     
     if (!nextLevel) return 100;
     
-    const progressInCurrentLevel = currentXP - currentLevel.minXP;
+  const progressInCurrentLevel = effectiveXP - currentLevel.minXP;
     const totalXPForCurrentLevel = currentLevel.maxXP - currentLevel.minXP + 1;
     
     return (progressInCurrentLevel / totalXPForCurrentLevel) * 100;
@@ -166,12 +160,13 @@ export default function GamificationWidget({ currentXP, onXPChange }: Gamificati
   const progressAchievements = achievements.filter(a => !a.unlocked && a.progress);
 
   useEffect(() => {
+    const target = typeof effectiveXP === 'number' && !isNaN(effectiveXP) ? effectiveXP : 0;
     Animated.timing(animatedXP, {
-      toValue: currentXP,
+      toValue: target,
       duration: 500,
       useNativeDriver: false,
     }).start();
-  }, [currentXP]);
+  }, [effectiveXP, animatedXP]);
 
   const handleLevelPress = () => {
     setShowLevelInfo(true);
@@ -196,10 +191,10 @@ export default function GamificationWidget({ currentXP, onXPChange }: Gamificati
               <Text style={styles.levelTitle}>{currentLevel.title}</Text>
             </View>
             <View style={styles.xpInfo}>
-              <Text style={styles.xpText}>{currentXP} XP</Text>
+        <Text style={styles.xpText}>{effectiveXP} XP</Text>
               {nextLevel && (
                 <Text style={styles.xpNext}>
-                  {nextLevel.minXP - currentXP} to next level
+          {nextLevel.minXP - effectiveXP} to next level
                 </Text>
               )}
             </View>
@@ -289,7 +284,7 @@ export default function GamificationWidget({ currentXP, onXPChange }: Gamificati
                   Next: Level {nextLevel.level} - {nextLevel.title}
                 </Text>
                 <Text style={styles.nextLevelXP}>
-                  Requires {nextLevel.minXP} XP ({nextLevel.minXP - currentXP} more needed)
+                  Requires {nextLevel.minXP} XP ({nextLevel.minXP - effectiveXP} more needed)
                 </Text>
                 
                 <Text style={styles.benefitsTitle}>New Benefits:</Text>

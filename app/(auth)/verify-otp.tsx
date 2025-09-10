@@ -20,20 +20,17 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMobileAuth } from '@/contexts/MobileAuthContext';
-import RecaptchaComponent from '@/components/RecaptchaComponent';
+import { useAWS } from '@/contexts/AWSContext';
+import { theme } from '@/config/theme';
 
 export default function VerifyOTPScreen() {
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
-  const [showRecaptcha, setShowRecaptcha] = useState(false);
-  const [recaptchaVerified, setRecaptchaVerified] = useState(false);
-  const { verifyOTP, resendOTP, verifyRecaptcha } = useMobileAuth();
+  const { confirmSignUp, resendConfirmationCode } = useAWS();
   const router = useRouter();
-  // For demo purposes, using a default phone number
-  const phoneNumber = '+1 (555) 123-4567';
   
   const inputRefs = useRef<(typeof TextInput | null)[]>([]);
 
@@ -86,15 +83,17 @@ export default function VerifyOTPScreen() {
       Alert.alert('Error', 'Please enter the complete 6-digit code');
       return;
     }
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      await verifyOTP(fullOtp);
-      Alert.alert(
-        'Success',
-        'Phone number verified successfully!',
-        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
-      );
+      await confirmSignUp(email.trim(), fullOtp);
+      Alert.alert('Success', 'Your account has been verified. Please sign in.', [
+        { text: 'OK', onPress: () => router.replace('/(auth)/login') }
+      ]);
     } catch (error: any) {
       Alert.alert('Verification Failed', error.message || 'Invalid verification code');
       // Clear OTP inputs on error
@@ -107,48 +106,36 @@ export default function VerifyOTPScreen() {
 
   const handleResendOTP = async () => {
     if (!canResend) return;
-
-    // Require reCAPTCHA verification for resending OTP
-    if (!recaptchaVerified) {
-      setShowRecaptcha(true);
+    if (!email) {
+      Alert.alert('Enter Email', 'Please enter your email to resend the code.');
       return;
     }
 
     setIsLoading(true);
     try {
-      await resendOTP();
+      await resendConfirmationCode?.(email.trim());
       setTimer(60);
       setCanResend(false);
       setOtp(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
-      Alert.alert('Success', 'Verification code sent again');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to resend code');
+      
+      // Start timer countdown again
+      const interval = setInterval(() => {
+        setTimer((prev) => {
+          if (prev <= 1) {
+            setCanResend(true);
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+  Alert.alert('Code Sent', 'We have resent the verification code.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to resend OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleRecaptchaVerify = async (token: string) => {
-    try {
-      const isValid = await verifyRecaptcha(token);
-      if (isValid) {
-        setRecaptchaVerified(true);
-        setShowRecaptcha(false);
-        Alert.alert('Verified', 'reCAPTCHA verification successful');
-        // Automatically resend OTP after verification
-        await handleResendOTP();
-      } else {
-        Alert.alert('Verification Failed', 'Please try again');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Verification failed. Please try again.');
-    }
-  };
-
-  const handleRecaptchaError = (error: any) => {
-    setShowRecaptcha(false);
-    Alert.alert('Verification Error', 'Failed to verify. Please try again.');
   };
 
   const formatPhoneNumber = (phone: string) => {
@@ -162,7 +149,7 @@ export default function VerifyOTPScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
+      <LinearGradient colors={theme.gradients.purple as any} style={styles.gradient}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
@@ -183,11 +170,25 @@ export default function VerifyOTPScreen() {
               <View style={styles.logo}>
                 <Ionicons name="phone-portrait" size={40} color="#ffffff" />
               </View>
-              <Text style={styles.title}>Verify Phone Number</Text>
+              <Text style={styles.title}>Confirm Your Account</Text>
               <Text style={styles.subtitle}>
-                Enter the 6-digit code sent to:
+                Enter your email and the 6-digit code we sent
               </Text>
-              <Text style={styles.phoneNumber}>{formatPhoneNumber(phoneNumber)}</Text>
+            </View>
+
+            {/* Email Input */}
+            <View style={styles.inputContainer}> 
+              <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email Address"
+                placeholderTextColor="#9CA3AF"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
             </View>
 
             {/* OTP Input */}
@@ -240,7 +241,7 @@ export default function VerifyOTPScreen() {
                   disabled={isLoading}
                 >
                   <Text style={styles.resendButtonText}>
-                    {recaptchaVerified ? 'Resend Code' : 'Verify & Resend'}
+                    Resend Code
                   </Text>
                 </TouchableOpacity>
               ) : (
@@ -248,30 +249,7 @@ export default function VerifyOTPScreen() {
                   Resend in {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
                 </Text>
               )}
-              
-              {recaptchaVerified && (
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="shield-checkmark" size={16} color="#10B981" />
-                  <Text style={styles.verifiedText}>Verified</Text>
-                </View>
-              )}
             </View>
-
-            {/* reCAPTCHA */}
-            {showRecaptcha && (
-              <View style={styles.recaptchaContainer}>
-                <RecaptchaComponent
-                  onVerify={handleRecaptchaVerify}
-                  onError={handleRecaptchaError}
-                />
-                <TouchableOpacity
-                  style={styles.cancelRecaptcha}
-                  onPress={() => setShowRecaptcha(false)}
-                >
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            )}
 
             {/* Help Section */}
             <View style={styles.helpContainer}>

@@ -20,18 +20,19 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
-import { useMobileAuth } from '@/contexts/MobileAuthContext';
+import { useAWS } from '@/contexts/AWSContext';
 
 export default function RegisterScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const { signUp } = useMobileAuth();
+  const { signUp } = useAWS();
   const router = useRouter();
 
   const isValidEmail = (email: string) => {
@@ -44,7 +45,7 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    if (!fullName || !email || !password || !confirmPassword) {
+  if (!fullName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -71,11 +72,13 @@ export default function RegisterScreen() {
 
     setIsLoading(true);
     try {
-      await signUp(email, password, fullName);
+      const [firstName, ...rest] = fullName.trim().split(' ');
+      const lastName = rest.join(' ');
+      await signUp(email, password, firstName, lastName, phoneNumber || undefined);
       Alert.alert(
         'Success',
-        'Account created successfully! Please check your email for verification.',
-        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+        'Account created! Please check your email for the 6-digit code to verify your account.',
+        [{ text: 'Verify Now', onPress: () => router.replace('/(auth)/verify-otp') }]
       );
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message || 'Failed to create account');
@@ -139,6 +142,20 @@ export default function RegisterScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
+                />
+              </View>
+
+              {/* Phone Number Input (optional) */}
+              <View style={styles.inputContainer}>
+                <Ionicons name="call-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Phone Number (optional)"
+                  placeholderTextColor="#9CA3AF"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
                 />
               </View>
 

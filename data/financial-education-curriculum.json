@@ -5,8 +5,8 @@
     "version": "3.0",
     "created": "2025-01-13",
     "lastUpdated": "2025-01-13",
-    "totalCourses": 12,
-    "estimatedCompletionTime": "200 hours",
+    "totalCourses": 20,
+    "estimatedCompletionTime": "350 hours",
     "certificationLevel": "World-Class Financial Literacy Professional Certificate",
     "accreditation": "OECD INFE Compliant | CFA Institute Educational Standards | CFP Board Aligned | NEFE Standards | Financial Planning Institute of SA",
     "languages": ["English", "Afrikaans", "Zulu", "Xhosa", "Sotho"],
@@ -692,46 +692,6 @@
       "certification": "Retirement Specialist Certificate"
     }
   ],
-  "certifications": [
-    {
-      "id": "financial-literacy-foundation",
-      "title": "Financial Literacy Foundation Certificate",
-      "description": "Comprehensive foundation in personal financial management",
-      "requirements": {
-        "coursesRequired": ["financial-psychology-001", "personal-finance-fundamentals-002"],
-        "minimumScore": 80,
-        "practicalProject": "Complete personal financial plan with 6-month budget and savings strategy"
-      },
-      "validity": "3 years",
-      "continuingEducation": "20 hours every 3 years"
-    },
-    {
-      "id": "investment-professional",
-      "title": "Investment Professional Certificate",
-      "description": "Advanced investment knowledge with practical portfolio management skills",
-      "requirements": {
-        "coursesRequired": ["investment-fundamentals-003", "tax-optimization-004"],
-        "minimumScore": 85,
-        "practicalProject": "Design and backtest a diversified portfolio using JSE and international markets"
-      },
-      "validity": "3 years",
-      "continuingEducation": "30 hours every 3 years"
-    },
-    {
-      "id": "financial-planning-master",
-      "title": "Financial Planning Master Certificate",
-      "description": "Comprehensive financial planning expertise meeting professional standards",
-      "requirements": {
-        "coursesRequired": ["financial-psychology-001", "personal-finance-fundamentals-002", "investment-fundamentals-003", "tax-optimization-004", "retirement-planning-005"],
-        "minimumScore": 85,
-        "capstoneProject": "Complete comprehensive financial plan for complex client scenario",
-        "ethics": "Ethics examination and code of conduct agreement"
-      },
-      "validity": "3 years",
-      "continuingEducation": "40 hours every 3 years",
-      "professionalRecognition": "Recognized by Financial Planning Institute of SA"
-    }
-  ],
   "progressionSystem": {
     "levels": [
       {
@@ -797,6 +757,238 @@
       "competencyMapping": "Skills assessment aligned with professional standards"
     }
   },
+
+  "specializations": [
+    {
+      "id": "fintech-blockchain-001",
+      "title": "FinTech & Blockchain Revolution",
+      "description": "Master the future of finance with comprehensive coverage of FinTech innovations, blockchain technology, DeFi, and digital transformation.",
+      "difficulty": "Advanced",
+      "duration": "20 hours",
+      "category": "Technology & Innovation",
+      "thumbnail": "🚀",
+      "xpReward": 1200,
+      "prerequisites": ["investment-fundamentals-003", "digital-banking-001"],
+      "accreditation": "MIT FinTech Certificate Aligned | Stanford Blockchain Research",
+      "lessons": [
+        {
+          "id": "lesson-fintech-001",
+          "title": "Digital Banking Revolution",
+          "type": "interactive",
+          "duration": "90 minutes",
+          "xpReward": 120,
+          "content": {
+            "introduction": "Digital banking is transforming how we interact with money. In South Africa, banks like Capitec, FNB, and Standard Bank are leading digital innovation.",
+            "modules": [
+              {
+                "title": "Mobile Banking Evolution",
+                "content": "From basic SMS banking to AI-powered financial assistants"
+              },
+              {
+                "title": "Open Banking & API Economy",
+                "content": "How open banking regulations are changing financial services"
+              }
+            ]
+          },
+          "quiz": {
+            "questions": [
+              {
+                "question": "What is the primary benefit of open banking for consumers?",
+                "options": [
+                  "Lower fees only",
+                  "Better integration and personalized services", 
+                  "Faster transactions only",
+                  "More security features"
+                ],
+                "correctAnswer": 1,
+                "explanation": "Open banking allows for better integration between financial services, enabling more personalized and comprehensive financial management tools."
+              },
+              {
+                "question": "Which South African bank was first to launch a fully digital banking platform?",
+                "options": [
+                  "Standard Bank",
+                  "Capitec Bank",
+                  "Discovery Bank", 
+                  "FNB"
+                ],
+                "correctAnswer": 2,
+                "explanation": "Discovery Bank launched as South Africa's first fully digital bank in 2019, built from the ground up with digital-first principles."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "cryptocurrency-defi-001", 
+      "title": "Cryptocurrency & DeFi Mastery",
+      "description": "Comprehensive guide to cryptocurrencies, decentralized finance, and blockchain investing with South African regulatory context.",
+      "difficulty": "Advanced",
+      "duration": "18 hours",
+      "category": "Digital Assets",
+      "thumbnail": "₿",
+      "xpReward": 1100,
+      "prerequisites": ["investment-fundamentals-003"],
+      "lessons": [
+        {
+          "id": "lesson-crypto-001",
+          "title": "Cryptocurrency Fundamentals",
+          "type": "comprehensive", 
+          "duration": "120 minutes",
+          "xpReward": 150,
+          "content": {
+            "introduction": "Cryptocurrencies represent a paradigm shift in how we think about money. Understanding Bitcoin, Ethereum, and other digital assets is crucial for modern investors.",
+            "sections": [
+              {
+                "title": "Blockchain Technology Basics",
+                "content": "How distributed ledgers work and why they're revolutionary"
+              },
+              {
+                "title": "South African Crypto Regulations", 
+                "content": "SARS tax implications and SARB position on cryptocurrencies"
+              },
+              {
+                "title": "DeFi Protocols & Yield Farming",
+                "content": "Decentralized finance opportunities and risks"
+              }
+            ]
+          },
+          "quiz": {
+            "questions": [
+              {
+                "question": "How are cryptocurrency gains taxed in South Africa?",
+                "options": [
+                  "No tax applies",
+                  "As capital gains or revenue depending on circumstances",
+                  "Flat 20% tax rate",
+                  "Only mining is taxed"
+                ],
+                "correctAnswer": 1,
+                "explanation": "SARS treats cryptocurrency gains as either capital gains or revenue, depending on the intention and frequency of trading."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+
+  "certifications": [
+    {
+      "id": "basic-literacy-cert",
+      "title": "Financial Literacy Foundation Certificate", 
+      "requirements": {
+        "courses": ["budgeting-basics-001", "emergency-fund-002", "debt-management-008"],
+        "minimumScore": 80,
+        "timeRequirement": "30 days"
+      },
+      "recognition": "Entry-level financial competency",
+      "issuer": "BlueBot Academy"
+    },
+    {
+      "id": "investment-specialist-cert",
+      "title": "Investment Specialist Certificate",
+      "requirements": {
+        "courses": ["investment-fundamentals-003", "retirement-planning-004", "tax-optimization-007"],
+        "minimumScore": 85, 
+        "timeRequirement": "60 days"
+      },
+      "recognition": "Professional investment knowledge",
+      "issuer": "BlueBot Academy"
+    },
+    {
+      "id": "fintech-expert-cert",
+      "title": "FinTech & Digital Finance Expert",
+      "requirements": {
+        "courses": ["fintech-blockchain-001", "cryptocurrency-defi-001"],
+        "minimumScore": 90,
+        "timeRequirement": "90 days"
+      },
+      "recognition": "Cutting-edge financial technology expertise", 
+      "issuer": "BlueBot Academy"
+    }
+  ],
+
+  "gamification": {
+    "achievements": [
+      {
+        "id": "first-course",
+        "title": "Learning Journey Begins",
+        "description": "Complete your first course",
+        "xpReward": 100,
+        "badge": "🎓"
+      },
+      {
+        "id": "quiz-master", 
+        "title": "Quiz Master",
+        "description": "Score 100% on 5 quizzes",
+        "xpReward": 250,
+        "badge": "🏆"
+      },
+      {
+        "id": "streak-warrior",
+        "title": "Streak Warrior", 
+        "description": "Maintain 30-day learning streak",
+        "xpReward": 500,
+        "badge": "🔥"
+      },
+      {
+        "id": "specialist",
+        "title": "Specialist",
+        "description": "Complete a specialization track",
+        "xpReward": 750,
+        "badge": "⭐"
+      },
+      {
+        "id": "master",
+        "title": "Financial Master",
+        "description": "Complete all courses with 85%+ average",
+        "xpReward": 2000,
+        "badge": "👑"
+      }
+    ],
+    "levels": [
+      { "level": 1, "title": "Novice", "xpRequired": 0, "perks": ["Basic progress tracking"] },
+      { "level": 5, "title": "Learner", "xpRequired": 1000, "perks": ["Achievement badges", "Progress analytics"] },
+      { "level": 10, "title": "Scholar", "xpRequired": 3000, "perks": ["Certificate eligibility", "Advanced content"] },
+      { "level": 15, "title": "Expert", "xpRequired": 6000, "perks": ["Mentorship access", "Industry connections"] },
+      { "level": 20, "title": "Master", "xpRequired": 10000, "perks": ["All features", "Instructor privileges"] }
+    ]
+  },
+
+  "personalizedLearning": {
+    "assessmentQuiz": {
+      "title": "Financial Knowledge Assessment",
+      "description": "Personalized learning path based on your current knowledge",
+      "questions": 25,
+      "duration": "20 minutes",
+      "categories": ["Budgeting", "Investing", "Technology", "Business", "Analysis"]
+    },
+    "learningPaths": [
+      {
+        "id": "beginner-path",
+        "title": "Foundation Builder",
+        "target": "Complete beginners",
+        "duration": "3 months", 
+        "courses": ["budgeting-basics-001", "emergency-fund-002", "banking-services-005"]
+      },
+      {
+        "id": "investor-path",
+        "title": "Smart Investor",
+        "target": "Investment focused",
+        "duration": "4 months",
+        "courses": ["investment-fundamentals-003", "retirement-planning-004", "tax-optimization-007"]
+      },
+      {
+        "id": "tech-path",
+        "title": "FinTech Pioneer", 
+        "target": "Technology enthusiasts",
+        "duration": "5 months",
+        "courses": ["fintech-blockchain-001", "cryptocurrency-defi-001"]
+      }
+    ]
+  },
+
   "qualityAssurance": {
     "contentReviewBoard": [
       "Certified Financial Planners (CFP) from SA and internationally",

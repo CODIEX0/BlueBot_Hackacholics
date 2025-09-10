@@ -5,7 +5,9 @@ import { theme, shadow } from '@/config/theme';
 
 interface Props {
   children: React.ReactNode;
-  style?: ViewStyle | ViewStyle[];
+  // Using any due to custom react-native type overrides in types/react-fixes.d.ts
+  // which do not export StyleProp. This keeps usage flexible (e.g., padding).
+  style?: any;
   gradient?: keyof typeof theme.gradients | string[];
   border?: boolean;
   elevation?: number;

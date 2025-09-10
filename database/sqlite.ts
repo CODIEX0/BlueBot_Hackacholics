@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { useAuth } from '../contexts/AuthContext';
+// import { useAuth } from '../contexts/AuthContext'; // Removed Firebase auth
 
 /**
  * SQLite Database Manager for BlueBot

@@ -1,17 +1,466 @@
-# BlueBot - Intelligent Financial Assistant
+# BlueBot – Intelligent Financial Assistant (Hackathon Edition)
 
-BlueBot is a comprehensive React Native financial assistant app with **mobile-first, offline-first architecture** designed specifically for both banked and unbanked users in South Africa. The app features SQLite-based local storage, biometric authentication, and cloud synchronization when online.
+BlueBot is an AWS‑centric, privacy‑aware financial wellness assistant built with Expo (React Native + TypeScript). It unifies budgeting, AI coaching, receipt intelligence, gamified learning, and (planned) pre‑qualification of Standard Bank products. This README reflects the streamlined, production‑lean direction (legacy Firebase + crypto wallet code removed) and the focused Hackathon roadmap.
 
-## 🚀 Mobile-First Architecture
+## ⚡ Executive Pitch
+Empower Standard Bank customers with a proactive, AI‑orchestrated financial wellbeing companion: real spending intelligence, adaptive budget recommendations, receipt OCR, contextual education, and upcoming smart product matching — all wrapped in POPIA‑respectful data controls.
 
-This app uses a **mobile-first, offline-first** architecture that prioritizes local data storage and authentication over cloud dependencies:
+## 🔑 Differentiators
+- MultiAI Orchestration: Automatic cascade across multiple model providers (Bedrock / Anthropic / OpenAI / Gemini / DeepSeek / HuggingFace / OpenRouter) with health + rate‑limit fallback.
+- Financial Wellbeing Layer (in progress): Holistic score derived from spending balance, savings velocity, category concentration, and goal progress.
+- Intelligent Budget Recommendations (planned): Data‑driven baseline + AI narrative explanation.
+- Product Marketplace (planned): Lightweight eligibility + pre‑qualification rationale for banking products.
+- POPIA Privacy Center (expanding): Granular toggles for data sharing & AI personalization redaction.
+- Unified Global Balance: Single persisted source of truth (BalanceContext) used across dashboards, chat, and analytics.
+- South African Localization: Local currency (ZAR), contextual financial education, emerging multilingual voice & speech support.
 
-### Key Mobile Features
-- **Local SQLite Database**: All user data, expenses, and receipts stored locally
-- **Biometric Authentication**: Fingerprint, Face ID, and local password authentication  
-- **Offline-First**: Full functionality without internet connection
-- **Cloud Sync**: Automatic synchronization with Firebase when online
-- **Advanced Security**: Local authentication with optional cloud backup
+## ✅ Current Implemented Core
+| Domain | Status | Highlights |
+|--------|--------|------------|
+| AI Chat | Implemented | MultiAI fallback, temperature control, provider health checks, privacy redaction, per‑message TTS (pause/resume/stop), selectable voices incl. SA variants |
+| Balance Consistency | Implemented | `BalanceContext` with AsyncStorage persistence + seeding from user data |
+| Expense Tracker | Enhanced | Category filters, search, recurring flag, CSV export, budget progress visuals |
+| Receipt Scanning | Scaffolded | Component + AWS Textract service abstraction ready (production OCR integration pending) |
+| Financial Education | Implemented | Curriculum ingestion + gamification context |
+| Gamification | Implemented | Points & achievements scaffolding |
+| Privacy Toggle | Implemented | Data sharing consent affects AI prompt context |
+| AWS Service Layer | Partial | DynamoDB / Textract / Cognito service abstractions present (some mocked pathways) |
+
+## 🎯 Hackathon Feature Roadmap (Focused 5)
+| Feature | Status | Next Step |
+|---------|--------|-----------|
+| Financial Wellbeing Score | Designing | Implement scorer module + UI widget (`WellbeingScoreCard`) |
+| Intelligent Budget Recommendations | Planned | Aggregate last 30d spend → baseline allocations → AI explanation |
+| Product Marketplace & Pre‑Qualification | Planned | Extend `StandardBankService` with rule engine + new `products.tsx` screen |
+| POPIA Privacy Center (Granular) | Planned | Dedicated screen: AI Personalization, Analytics, Marketing, Auto‑Import toggles |
+| Account Integration Layer (Simulated) | Planned | Mock account + transaction ingestion feeding expenses (future open banking) |
+
+## 🧱 Architecture Overview
+Client (Expo RN) → Context Providers → Service Layer → (AWS / External AI Providers)
+
+Key Contexts:
+- `AWSContext` – session + backend service access
+- `BalanceContext` – unified financial balance (persistent)
+- `GamificationContext` – points & achievements
+- `ThemeContext` – theming
+
+Service Layer Highlights:
+- `MultiAI` & `BlueBotAI` – provider selection, fallback sequencing, privacy redaction
+- `AWSDynamoDBService`, `AWSCognitoService`, `AWSTextractService`, `AWSBedrockService`
+- `StandardBankService` – product catalogue + (upcoming) eligibility logic
+
+Planned Additions:
+- `WellbeingScoreService` – scoring algorithm & historical snapshots
+- `BudgetRecommendationService` – statistical + AI hybrid suggestions
+- `PrivacyCenterService` – consolidated consent state
+- `AccountAggregationService` – mock ingestion pipeline
+
+## 🧮 Financial Wellbeing Score (Design Outline)
+Inputs (initial set):
+1. Spending Efficiency: (Planned Budget vs Actual) variance normalization
+2. Savings Momentum: (Savings / Income) trend (approx. via goals + balance delta)
+3. Category Diversification: Herfindahl index of discretionary vs essentials
+4. Goal Progress: Weighted completion % of active goals
+5. Recurring vs One‑off Ratio: Healthy baseline threshold
+
+Score Pipeline (0–100): weight -> normalize -> clamp -> composite -> grade (A–E). Stored periodically for trend line.
+
+## 🤖 MultiAI Orchestration
+Fallback chain example: User provider → Health Checked List (e.g., Bedrock → Anthropic → OpenAI → Gemini → HuggingFace) → Local/mock. Automatic skip on 429 / timeout. Temperature & persona adjustable; privacy redaction strips PII when consent disabled.
+
+## 📊 Data & Persistence
+- Local: AsyncStorage (settings, balance), SQLite (expenses – extendable), future migration path to DynamoDB streams.
+- Cloud (planned/partial): DynamoDB for expenses/goals, S3 for receipt images, Textract for OCR, Cognito for auth, Bedrock for AI (where available regionally).
+
+## 🔐 Privacy & POPIA
+Privacy Center will expose:
+- AI Personalization (on/off)
+- Data Sharing with Model Providers
+- Analytics Telemetry
+- Product Recommendation Personalization
+- Auto Transaction Import (future)
+
+When disabled, prompts redact: names, merchants, transaction memos, free‑text notes (hashed placeholders). All PII boundaries enforced client‑side before outbound requests.
+
+## 🛠 Technology Stack
+Frontend: Expo (React Native), TypeScript, expo-router, AsyncStorage, Voice / Speech APIs
+AI Providers (configurable): Bedrock, OpenAI, Anthropic, Gemini, DeepSeek, HuggingFace, OpenRouter
+AWS: Cognito, DynamoDB, S3, Textract, (Bedrock), CloudWatch (planned logging), IAM
+Testing: Jest, React Native Testing Library (extendable), typed strict TS
+Tooling: Metro bundler, Babel, EAS (optional)
+
+## ⚙️ Environment Variables (.env)
+```
+# AWS
+EXPO_PUBLIC_AWS_REGION=eu-west-1
+EXPO_PUBLIC_AWS_USER_POOL_ID=xxxx
+EXPO_PUBLIC_AWS_USER_POOL_CLIENT_ID=xxxx
+EXPO_PUBLIC_AWS_IDENTITY_POOL_ID=xxxx
+EXPO_PUBLIC_AWS_TEXTRACT_ROLE_ARN=arn:aws:iam::xxxx:role/BlueBotTextract
+EXPO_PUBLIC_AWS_S3_BUCKET=bluebot-receipts-dev
+
+# AI Providers (only set what you use)
+EXPO_PUBLIC_OPENAI_API_KEY=sk-...
+EXPO_PUBLIC_ANTHROPIC_API_KEY=...
+EXPO_PUBLIC_GEMINI_API_KEY=...
+EXPO_PUBLIC_DEEPSEEK_API_KEY=...
+EXPO_PUBLIC_HUGGINGFACE_API_KEY=hf_...
+EXPO_PUBLIC_OPENROUTER_API_KEY=or_...
+
+# Feature Flags (planned)
+EXPO_PUBLIC_ENABLE_WELLBEING=true
+EXPO_PUBLIC_ENABLE_MARKETPLACE=false
+```
+
+## 🚀 Getting Started
+1. Install deps: `npm install`
+2. Create `.env` (see above)
+3. Run: `npm start`
+4. Choose target (iOS / Android / Web) via Expo interface
+
+Testing:
+```
+npm test
+```
+
+Type Check:
+```
+npm run typecheck
+```
+
+## 🧪 Testing Strategy (Summary)
+- Unit: Pure functions & service fallbacks
+- Integration: AI chat flow, expense CRUD
+- Snapshot (select): UI stability for critical cards (coming)
+- Future: Scoring algorithm boundary tests, recommendation drift tests
+
+## 🔧 Development Notes
+- Global balance edits via Expenses Balance tab or Dashboard quick action propagate instantly.
+- Provider fallback order configurable (future external config).
+- CSV export produces shareable spending snapshot (no PII beyond categories + amounts if privacy redaction active).
+
+## 📈 Planned Iterations (Quarterly View)
+| Quarter | Focus | Outcomes |
+|---------|-------|----------|
+| Q3 2025 | Hackathon Delivery | Wellbeing Score MVP, Budget AI Recs, Privacy Center screen |
+| Q4 2025 | Productization | Marketplace + pre‑qualification, mock account ingestion, telemetry dashboards |
+| Q1 2026 | Scale & Compliance | Open Banking connectors, audit logging, encryption hardening |
+
+## 🛡 Security Snapshot
+- Client-side redaction before AI calls
+- Principle of least privilege IAM (recommended templates in `docs/AWS_SETUP.md`)
+- No crypto wallet / on‑device private key handling (removed)
+- Pending: centralized error observability (CloudWatch + structured logs)
+
+## 🗃 Data Model (Current Essentials)
+| Entity | Key Fields | Notes |
+|--------|-----------|-------|
+| Expense | id, amount, category, date, recurring | CSV export & budget aggregation |
+| Balance | currentBalance, lastUpdated | Stored AsyncStorage (`bb.balance`) |
+| Goal (planned extension) | id, targetAmount, progress | Feeding wellbeing score |
+| Receipt (planned) | id, s3Key, fieldsExtracted | Output of Textract pipeline |
+
+## 🧩 Extensibility Hooks
+- Add AI Provider: Implement provider adapter in `MultiAI` registry.
+- Add Score Dimension: Extend `WellbeingScoreService` weights & normalization map.
+- Add Marketplace Rule: Append to `StandardBankService` eligibility evaluators.
+
+## 🧑‍💻 Contribution (Hackathon Mode)
+Please keep PRs concise: feature slice + tests + docs delta. Use conventional commits (`feat:`, `fix:`, `docs:`...).
+
+## 🗑 Legacy Removed / Deprecated
+- Crypto wallet (addresses, QR payments, token pricing)
+- Heavy Firebase-first offline auth model (replaced with AWS-focused approach)
+- Redundant duplicate README sections
+
+## 📄 License
+MIT License – see `LICENSE` (proprietary indicators removed for clarity).
+
+## 🙏 Acknowledgments
+South African financial ecosystem & developer community. Open‑source AI model providers. Contributors iterating toward a safer, smarter banking assistant.
+
+---
+Built with focus on financial wellbeing, transparency, and adaptability.
+
+## 🌟 Core Features
+
+### 🧠 BlueBot AI Assistant
+- **AWS Bedrock Integration**: Powered by Amazon's AI services for intelligent financial advice
+- **South African Context**: Tailored advice for Standard Bank customers and local economic conditions
+- **Budget Analysis**: AI-powered insights into spending patterns and budget optimization
+- **Personalized Recommendations**: Custom financial advice based on user behavior and goals
+- **Natural Language Processing**: Interactive chat interface with voice interaction support
+
+### 📊 Smart Budget Management
+- **AWS DynamoDB Storage**: Secure, scalable cloud storage for all financial data
+- **Expense Tracking**: Comprehensive expense logging with intelligent categorization
+- **Budget Creation**: Set and monitor monthly/weekly budgets with progress tracking
+- **Spending Analytics**: Visual insights with charts and trends
+- **Goal Setting**: Create and track savings goals with progress indicators
+
+### 📸 Receipt Scanning & OCR
+- **AWS Textract Integration**: Advanced OCR processing for South African receipts
+- **Automatic Data Extraction**: Extract amount, date, merchant, and items from receipts
+- **Smart Categorization**: AI-powered expense categorization
+- **Multi-format Support**: Physical receipts via camera and digital receipt uploads
+- **Expense Validation**: Automatic verification and duplicate detection
+
+### 🎓 Financial Education Platform
+- **Interactive Learning**: Comprehensive financial literacy courses
+- **South African Focus**: Content tailored for local banking and economic landscape
+- **Progress Tracking**: Complete course progress with achievements
+- **Quizzes & Assessments**: Interactive learning with immediate feedback
+- **Certification**: Digital certificates for completed courses
+
+### 👤 User Profile & Settings
+- **AWS Cognito Authentication**: Secure authentication with multi-factor support
+- **Profile Management**: Personal information and preferences
+- **Security Settings**: Biometric authentication and security preferences
+- **Account Insights**: Overview of financial health and account summary
+- **Customization**: Personalized app experience and notifications
+
+### � Dashboard Overview
+- **Financial Summary**: Quick overview of account balance, expenses, and budgets
+- **Recent Transactions**: Latest expense entries and receipt scans
+- **Budget Progress**: Visual budget tracking with spending alerts
+- **Quick Actions**: Fast access to common features like adding expenses or scanning receipts
+- **AI Insights**: Personalized financial tips and recommendations
+
+## 🛠 Technology Stack
+
+### Frontend
+- **React Native**: Cross-platform mobile development
+- **Expo**: Development platform and build tools
+- **TypeScript**: Type-safe JavaScript development
+- **React Navigation**: Navigation library
+- **Expo Linear Gradient**: Gradient styling
+- **React Native Chart Kit**: Data visualization
+
+### AWS Services
+- **AWS DynamoDB**: NoSQL database for user data and transactions
+- **AWS Cognito**: User authentication and authorization
+- **AWS Textract**: OCR processing for receipt scanning
+- **AWS Bedrock**: AI services for BlueBot assistant
+- **AWS S3**: File storage for receipts and documents
+
+### Additional Services
+- **Expo Camera**: Camera functionality for receipt scanning
+- **React Native Voice**: Voice interaction capabilities
+- **AsyncStorage**: Local data persistence
+
+## 📱 Supported Platforms
+
+- **iOS**: iPhone and iPad
+- **Android**: Android 8.0+ (API level 26+)
+- **Web**: Progressive Web App support
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+ and npm
+- Expo CLI
+- Android Studio (for Android development)
+- Xcode (for iOS development on macOS)
+- AWS Account with configured services
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/standard-bank/bluebot-app.git
+   cd bluebot-app
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment variables**
+   Copy `.env.example` to `.env` and fill values. See `docs/AWS_SETUP.md` for full AWS setup.
+
+4. **Start the development server**
+   ```bash
+   npm start
+   ```
+
+5. **Run on device/emulator**
+   ```bash
+   # iOS Simulator
+   npm run ios
+   
+   # Android Emulator
+   npm run android
+   
+   # Web browser
+   npm run web
+   ```
+
+### AWS Setup
+
+Refer to `docs/AWS_SETUP.md` for complete steps. Summary:
+
+1. **DynamoDB Tables**
+   - Users table with GSI for email lookup
+   - Expenses table with GSI for user queries
+   - Budgets table for budget tracking
+   - Goals table for savings goals
+   - Receipts table for scanned documents
+
+2. **Cognito User Pool**
+   - Email/Phone authentication
+   - MFA configuration
+   - Custom attributes for Standard Bank integration
+
+3. **S3 Bucket**
+   - Receipt image storage
+   - Document uploads
+   - Proper IAM policies for secure access
+
+4. **Textract Configuration**
+   - Receipt analysis configuration
+   - South African document templates
+   - Custom data extraction rules
+
+## 📂 Project Structure
+
+```
+bluebot/
+├── app/                          # Expo Router pages
+│   ├── (tabs)/                   # Main app tabs
+│   │   ├── index.tsx             # Dashboard
+│   │   ├── add-expense.tsx       # Add expenses
+│   │   ├── ai-chat.tsx           # AI assistant
+│   │   ├── financial-education.tsx # Learning platform
+│   │   └── profile.tsx           # User profile
+│   ├── scan-receipt.tsx          # Receipt scanning
+│   ├── privacy-policy.tsx        # Privacy policy
+│   ├── terms-conditions.tsx      # Terms of service
+│   └── _layout.tsx               # Root layout
+├── components/                   # Reusable UI components
+│   ├── BudgetProgress.tsx        # Budget tracking
+│   ├── FinancialInsights.tsx     # Financial analytics
+│   ├── ReceiptScanner.tsx        # Receipt scanning
+│   ├── CurriculumBasedEducation.tsx # Education platform
+│   └── GlassCard.tsx             # UI components
+├── contexts/                     # React Context providers
+│   ├── AWSContext.tsx            # AWS services integration
+│   ├── ThemeContext.tsx          # App theming
+│   └── GamificationContext.tsx   # Learning achievements
+├── services/                     # Business logic services
+│   ├── AWSDynamoDBService.ts     # Database operations
+│   ├── AWSTextractService.ts     # OCR processing
+│   ├── AWSCognitoService.ts      # Authentication
+│   ├── AWSBedrockService.ts      # AI assistant
+│   ├── AWSServiceManager.ts      # Service coordination
+│   ├── curriculumService.ts      # Education content
+│   └── educationService.ts       # Learning platform
+├── data/                         # Static data files
+│   └── financial-education-curriculum.json # Education content
+├── config/                       # Configuration files
+│   └── theme.ts                  # App theming
+└── types/                        # TypeScript definitions
+    └── index.ts                  # Type definitions
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+All AWS services must be properly configured with appropriate credentials and permissions.
+
+### App Configuration
+Edit `app.json` to customize app settings:
+
+```json
+{
+  "expo": {
+    "name": "BlueBot",
+    "slug": "bluebot-standard-bank",
+    "version": "1.0.0",
+    "platforms": ["ios", "android", "web"],
+    "permissions": [
+      "CAMERA",
+      "READ_EXTERNAL_STORAGE",
+      "RECORD_AUDIO"
+    ]
+  }
+}
+```
+
+## 🔒 Security Features
+
+### Data Protection
+- **AWS Security**: All data secured with AWS best practices
+- **Encryption**: Data encrypted in transit and at rest
+- **Authentication**: Multi-factor authentication via AWS Cognito
+- **Authorization**: Role-based access control
+
+### Standard Bank Integration
+- **Secure APIs**: Integration with Standard Bank systems
+- **Customer Data**: Secure handling of bank customer information
+- **Compliance**: Adherence to banking security standards
+- **Audit Logging**: Complete audit trail for all operations
+
+## 🧪 Testing
+
+### Unit Tests
+```bash
+npm run test
+```
+
+### Manual Testing Checklist
+- [ ] User registration and authentication
+- [ ] Receipt scanning and data extraction
+- [ ] Budget creation and tracking
+- [ ] AI chat functionality
+- [ ] Financial education progress
+- [ ] Profile management
+
+## 🚀 Deployment
+
+### Development Build
+```bash
+expo build:android
+expo build:ios
+```
+
+### Production Build
+```bash
+# Android
+expo build:android --type app-bundle
+
+# iOS
+expo build:ios --type archive
+```
+
+## 📈 Roadmap
+
+### Version 1.1
+- [ ] Enhanced AI capabilities
+- [ ] Advanced budget analytics
+- [ ] Integration with Standard Bank accounts
+- [ ] Expanded financial education content
+
+### Version 1.2
+- [ ] Investment tracking
+- [ ] Advanced goal setting
+- [ ] Social features for financial education
+- [ ] Enhanced receipt processing
+
+## 📄 License
+
+This project is proprietary software developed for Standard Bank customers.
+
+## 📞 Support
+
+### Contact
+- Email: support@standardbank.co.za
+- Website: https://standardbank.co.za/bluebot
+- Support Portal: Standard Bank customer support
+
+---
+
+**Built for Standard Bank customers with ❤️**
 
 ## 🌟 Features
 
