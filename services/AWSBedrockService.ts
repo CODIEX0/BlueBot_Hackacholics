@@ -61,6 +61,7 @@ export class AWSBedrockService {
   private realtime = {
     modelId: process.env.EXPO_PUBLIC_BEDROCK_REALTIME_MODEL_ID || 'amazon.nova-realtime-v1:0',
     // Websocket URL is established by AWS SDK; we expose stubs for now
+  proxyUrl: process.env.EXPO_PUBLIC_BEDROCK_REALTIME_PROXY_URL || ''
   };
   
   constructor() {
@@ -85,20 +86,67 @@ export class AWSBedrockService {
   async chat(messages: AIMessage[], userId: string, modelName: string = 'claude'): Promise<BedrockResponse> {
     try {
       console.log('Processing chat request for user:', userId);
-      // If client is not initialized, return mock response
+      // Prepare a sensible default mock in case Bedrock invocation isn't available
       const mockResponse: BedrockResponse = {
-        content: 'Thank you for your question! I\'m here to help you with your financial planning and budgeting needs. How can I assist you today?',
+        content: 'Thanks for your question. I can help with budgeting, saving, investing, and day-to-day banking decisions. What would you like to do?',
         confidence: 0.92,
-        model: this.models.claude,
+        model: this.models[modelName as keyof typeof this.models] || modelName,
         inputTokens: 150,
         outputTokens: 75,
         latency: 1200
       };
+
+      // If client isn't initialized, return mock
       if (!this.bedrockClient) {
         return mockResponse;
       }
-      // In production, construct Bedrock invoke request from messages; returning mock for now
-      return mockResponse;
+
+      // Dynamically import command to avoid bundling issues in RN
+      const { InvokeModelCommand } = await import('@aws-sdk/client-bedrock-runtime');
+
+      // Map incoming messages to provider-specific format (Anthropic Claude on Bedrock)
+      const userAndSystem = messages.map(m => ({
+        role: m.role,
+        content: [{ type: 'text', text: m.content }]
+      }));
+
+      const modelId = (this.models as any)[modelName] || this.models.claude;
+      // Default to Anthropic messages format
+      const anthropicPayload: any = {
+        anthropic_version: 'bedrock-2023-05-31',
+        max_tokens: 800,
+        temperature: 0.7,
+        messages: userAndSystem
+      };
+
+      const start = Date.now();
+      const command = new InvokeModelCommand({
+        modelId,
+        contentType: 'application/json',
+        accept: 'application/json',
+        body: new TextEncoder().encode(JSON.stringify(anthropicPayload))
+      } as any);
+
+      try {
+        const result: any = await this.bedrockClient.send(command);
+        const bodyBytes: Uint8Array = result.body;
+        const json = JSON.parse(new TextDecoder().decode(bodyBytes));
+        // Anthropic response shape: { content: [{ type: 'text', text: '...' }], usage: { input_tokens, output_tokens } }
+        const text = json?.content?.[0]?.text || json?.outputText || mockResponse.content;
+        const inputTokens = json?.usage?.input_tokens ?? 0;
+        const outputTokens = json?.usage?.output_tokens ?? 0;
+        return {
+          content: text,
+          confidence: 0.9,
+          model: modelId,
+          inputTokens,
+          outputTokens,
+          latency: Date.now() - start
+        };
+      } catch (invokeErr) {
+        console.warn('Bedrock invoke failed, falling back to mock:', (invokeErr as any)?.message || invokeErr);
+        return mockResponse;
+      }
     } catch (error) {
       console.error('Error in chat:', error);
       throw new Error('Failed to process chat request');
@@ -111,11 +159,15 @@ export class AWSBedrockService {
    */
   async startRealtimeSession(params: { language?: string }): Promise<{ connected: boolean; model: string }>{
     try {
+      // Prefer proxy relay in Expo/React Native environment
+      if (this.realtime.proxyUrl) {
+        return { connected: true, model: this.realtime.modelId };
+      }
       if (!this.bedrockClient) {
         return { connected: false, model: this.realtime.modelId };
       }
-      // TODO: Implement Bedrock Realtime WebSocket when native layer/proxy is available
-      return { connected: true, model: this.realtime.modelId };
+      // Direct WS to Bedrock Realtime requires SigV4 WebSocket and native audio; defer to proxy
+      return { connected: false, model: this.realtime.modelId };
     } catch (error) {
       console.error('Failed to start realtime session:', error);
       return { connected: false, model: this.realtime.modelId };
