@@ -60,7 +60,7 @@ type SendOptions = { agent?: AgentKey; temperature?: number };
 class MultiAIService {
   private providers: Map<string, AIProvider> = new Map();
   private currentProvider: string = 'claude';
-  private fallbackOrder: string[] = ['deepseek', 'gemini', 'openai', 'claude', 'local', 'mock'];
+  private fallbackOrder: string[] = ['claude', 'deepseek', 'gemini', 'openai', 'local', 'mock'];
 
   constructor() {
     this.initializeProviders();
@@ -169,12 +169,12 @@ class MultiAIService {
       available: process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
     });
 
-    // Update fallback order to prioritize DeepSeek → Gemini → OpenAI → Claude
+    // Update fallback order to prioritize Claude (via Bedrock) first
     this.fallbackOrder = [
+      'claude',
       'deepseek',
       'gemini',
       'openai',
-      'claude',
       'huggingface-gpt-oss',
       'huggingface-llama',
       'openrouter',
@@ -1053,7 +1053,7 @@ Always be encouraging, supportive, and provide specific, actionable advice relev
   getPrimaryProvider(): string {
   // Refresh to reflect current env
   this.refreshAvailability();
-  const priority = ['deepseek', 'gemini', 'openai', 'claude', 'openrouter', 'local', 'mock'];
+  const priority = ['claude', 'deepseek', 'gemini', 'openai', 'openrouter', 'local', 'mock'];
   const pick = priority.find(k => this.providers.get(k)?.available);
   return pick || 'mock';
   }

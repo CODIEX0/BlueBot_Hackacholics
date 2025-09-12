@@ -80,6 +80,60 @@ const gradientsLight = {
   nav: ['#FFFFFF', '#F8FAFC'],
 };
 
+// Optional Standard Bank brand palette (can be applied via setBrandPalette)
+export const STANDARD_BANK_BRAND = {
+  primary: '#0033A1',     // SB Blue
+  primaryDark: '#001E60', // Deep SB Blue
+  accent: '#00A9E0',      // Cyan accent
+} as const;
+
+// Typography tokens
+const typography = {
+  fontFamily: Platform.select({ ios: 'System', android: 'sans-serif-medium', default: 'System' }),
+  sizes: {
+    xs: 12,
+    sm: 14,
+    md: 16,
+    lg: 18,
+    xl: 22,
+    display: 28,
+  },
+  weight: {
+    regular: Platform.OS === 'ios' ? '400' : '400',
+    medium: Platform.OS === 'ios' ? '600' : '500',
+    bold: Platform.OS === 'ios' ? '700' : '700',
+  },
+  lineHeights: {
+    sm: 18,
+    md: 22,
+    lg: 26,
+    xl: 32,
+    display: 36,
+  },
+} as const;
+
+// Component sizing (compact header/tabs)
+const sizes = {
+  headerHeight: 52,
+  headerHeightCompact: 44,
+  tabHeight: 36,
+  tabHeightCompact: 30,
+  icon: 20,
+  borderWidth: 1,
+} as const;
+
+// z-index scale
+const zIndex = {
+  base: 0,
+  header: 10,
+  tab: 9,
+  overlay: 20,
+  modal: 30,
+  toast: 40,
+} as const;
+
+type Colors = typeof colorsDark;
+
 // Exported theme object (mutable via setThemeMode)
 export const theme = {
   colors: { ...colorsDark },
@@ -100,6 +154,10 @@ export const theme = {
     xl: 24,
     xxl: 32,
   },
+  typography,
+  sizes,
+  zIndex,
+  isDark: true,
 };
 
 export type Theme = typeof theme;
@@ -108,6 +166,36 @@ export const setThemeMode = (mode: 'dark' | 'light') => {
   const src = mode === 'light' ? { colors: colorsLight, gradients: gradientsLight } : { colors: colorsDark, gradients: gradientsDark };
   Object.assign(theme.colors, src.colors);
   Object.assign(theme.gradients, src.gradients);
+  theme.isDark = mode !== 'light';
+};
+
+// Apply a brand palette override (e.g., STANDARD_BANK_BRAND)
+export type BrandPalette = Partial<
+  Pick<Colors, 'primary' | 'primaryDark' | 'accent' | 'success' | 'warning' | 'danger' | 'chipBg' | 'border'>
+>;
+export const setBrandPalette = (palette: BrandPalette) => {
+  Object.assign(theme.colors, palette);
+};
+
+// Utility: convert hex to rgba
+const hexToRgb = (hex: string) => {
+  const m = hex.replace('#', '');
+  const str = m.length === 3 ? m.split('').map((c) => c + c).join('') : m;
+  const bigint = parseInt(str, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return { r, g, b };
+};
+
+export const rgba = (hex: string, alpha = 1) => {
+  try {
+    const { r, g, b } = hexToRgb(hex);
+    const a = Math.min(Math.max(alpha, 0), 1);
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  } catch {
+    return hex;
+  }
 };
 
 export const shadow = (elevation = 10, opacity = 0.18) => ({

@@ -1,136 +1,173 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="56" failures="0" errors="0" time="10.447">
-  <testsuite name="BudgetRecommendationService" errors="0" failures="0" skipped="0" timestamp="2025-09-09T12:34:42" time="5.777" tests="2">
-    <testcase classname="BudgetRecommendationService generates recommendations with spending data" name="BudgetRecommendationService generates recommendations with spending data" time="0.018">
-    </testcase>
-    <testcase classname="BudgetRecommendationService falls back to default mix when no data" name="BudgetRecommendationService falls back to default mix when no data" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="WellbeingScoreService" errors="0" failures="0" skipped="0" timestamp="2025-09-09T12:34:42" time="5.821" tests="2">
-    <testcase classname="WellbeingScoreService computes a score within 0-100" name="WellbeingScoreService computes a score within 0-100" time="0.029">
-    </testcase>
-    <testcase classname="WellbeingScoreService handles empty data gracefully" name="WellbeingScoreService handles empty data gracefully" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="Security Tests" errors="0" failures="0" skipped="1" timestamp="2025-09-09T12:34:42" time="5.837" tests="1">
+<testsuites name="jest tests" tests="56" failures="4" errors="0" time="21.003">
+  <testsuite name="Security Tests" errors="0" failures="0" skipped="1" timestamp="2025-09-11T12:21:23" time="5.757" tests="1">
     <testcase classname="Security Tests Security Tests (placeholder) placeholder - crypto security tests removed" name="Security Tests Security Tests (placeholder) placeholder - crypto security tests removed" time="0">
       <skipped/>
     </testcase>
   </testsuite>
-  <testsuite name="Payment Flow" errors="0" failures="0" skipped="0" timestamp="2025-09-09T12:34:42" time="5.911" tests="1">
-    <testcase classname="Payment Flow placeholder passes" name="Payment Flow placeholder passes" time="0.026">
+  <testsuite name="Payment Flow" errors="0" failures="0" skipped="0" timestamp="2025-09-11T12:21:23" time="5.862" tests="1">
+    <testcase classname="Payment Flow placeholder passes" name="Payment Flow placeholder passes" time="0.009">
     </testcase>
   </testsuite>
-  <testsuite name="NLIntents.parseExpenseIntent" errors="0" failures="0" skipped="0" timestamp="2025-09-09T12:34:42" time="5.915" tests="6">
-    <testcase classname="NLIntents.parseExpenseIntent parses create with amount/category/merchant/date keywords" name="NLIntents.parseExpenseIntent parses create with amount/category/merchant/date keywords" time="0.017">
+  <testsuite name="FinancialNarrativeService" errors="0" failures="0" skipped="0" timestamp="2025-09-11T12:21:23" time="5.879" tests="2">
+    <testcase classname="FinancialNarrativeService generates narrative with wellbeing only" name="FinancialNarrativeService generates narrative with wellbeing only" time="0.01">
+    </testcase>
+    <testcase classname="FinancialNarrativeService handles missing wellbeing gracefully" name="FinancialNarrativeService handles missing wellbeing gracefully" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="BudgetRecommendationService" errors="0" failures="0" skipped="0" timestamp="2025-09-11T12:21:23" time="5.893" tests="2">
+    <testcase classname="BudgetRecommendationService generates recommendations with spending data" name="BudgetRecommendationService generates recommendations with spending data" time="0.011">
+    </testcase>
+    <testcase classname="BudgetRecommendationService falls back to default mix when no data" name="BudgetRecommendationService falls back to default mix when no data" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="WellbeingScoreService" errors="0" failures="0" skipped="0" timestamp="2025-09-11T12:21:23" time="5.895" tests="2">
+    <testcase classname="WellbeingScoreService computes a score within 0-100" name="WellbeingScoreService computes a score within 0-100" time="0.011">
+    </testcase>
+    <testcase classname="WellbeingScoreService handles empty data gracefully" name="WellbeingScoreService handles empty data gracefully" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="GoalsContext logic" errors="0" failures="0" skipped="0" timestamp="2025-09-11T12:21:23" time="6.025" tests="3">
+    <testcase classname="GoalsContext logic adds a goal and retrieves it" name="GoalsContext logic adds a goal and retrieves it" time="0.012">
+    </testcase>
+    <testcase classname="GoalsContext logic completing a goal awards points via gamification callbacks" name="GoalsContext logic completing a goal awards points via gamification callbacks" time="0.003">
+    </testcase>
+    <testcase classname="GoalsContext logic updateGoalDetails clamps current when target reduced" name="GoalsContext logic updateGoalDetails clamps current when target reduced" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="NLIntents.parseExpenseIntent" errors="0" failures="0" skipped="0" timestamp="2025-09-11T12:21:23" time="5.901" tests="6">
+    <testcase classname="NLIntents.parseExpenseIntent parses create with amount/category/merchant/date keywords" name="NLIntents.parseExpenseIntent parses create with amount/category/merchant/date keywords" time="0.011">
     </testcase>
     <testcase classname="NLIntents.parseExpenseIntent parses read totals last month" name="NLIntents.parseExpenseIntent parses read totals last month" time="0.001">
     </testcase>
-    <testcase classname="NLIntents.parseExpenseIntent parses update target and amount" name="NLIntents.parseExpenseIntent parses update target and amount" time="0.002">
+    <testcase classname="NLIntents.parseExpenseIntent parses update target and amount" name="NLIntents.parseExpenseIntent parses update target and amount" time="0.001">
     </testcase>
     <testcase classname="NLIntents.parseExpenseIntent parses delete last coffee" name="NLIntents.parseExpenseIntent parses delete last coffee" time="0.001">
     </testcase>
-    <testcase classname="IntentExecution.selectExpenseTargets filters by merchant and picks closest amount" name="IntentExecution.selectExpenseTargets filters by merchant and picks closest amount" time="0.001">
+    <testcase classname="IntentExecution.selectExpenseTargets filters by merchant and picks closest amount" name="IntentExecution.selectExpenseTargets filters by merchant and picks closest amount" time="0">
     </testcase>
-    <testcase classname="IntentExecution.selectExpenseTargets filters by category and date range" name="IntentExecution.selectExpenseTargets filters by category and date range" time="0.002">
-    </testcase>
-  </testsuite>
-  <testsuite name="GoalsContext logic" errors="0" failures="0" skipped="0" timestamp="2025-09-09T12:34:42" time="5.981" tests="3">
-    <testcase classname="GoalsContext logic adds a goal and retrieves it" name="GoalsContext logic adds a goal and retrieves it" time="0.014">
-    </testcase>
-    <testcase classname="GoalsContext logic completing a goal awards points via gamification callbacks" name="GoalsContext logic completing a goal awards points via gamification callbacks" time="0.002">
-    </testcase>
-    <testcase classname="GoalsContext logic updateGoalDetails clamps current when target reduced" name="GoalsContext logic updateGoalDetails clamps current when target reduced" time="0.004">
+    <testcase classname="IntentExecution.selectExpenseTargets filters by category and date range" name="IntentExecution.selectExpenseTargets filters by category and date range" time="0.001">
     </testcase>
   </testsuite>
-  <testsuite name="FinancialNarrativeService" errors="0" failures="0" skipped="0" timestamp="2025-09-09T12:34:42" time="6.05" tests="2">
-    <testcase classname="FinancialNarrativeService generates narrative with wellbeing only" name="FinancialNarrativeService generates narrative with wellbeing only" time="0.01">
+  <testsuite name="Production MultiAI Service" errors="0" failures="4" skipped="0" timestamp="2025-09-11T12:21:23" time="15.733" tests="20">
+    <testcase classname="Production MultiAI Service Provider Initialization should initialize all available providers with valid API keys" name="Production MultiAI Service Provider Initialization should initialize all available providers with valid API keys" time="0.088">
     </testcase>
-    <testcase classname="FinancialNarrativeService handles missing wellbeing gracefully" name="FinancialNarrativeService handles missing wellbeing gracefully" time="0.001">
+    <testcase classname="Production MultiAI Service Provider Initialization should exclude providers without valid API keys" name="Production MultiAI Service Provider Initialization should exclude providers without valid API keys" time="0.001">
     </testcase>
-  </testsuite>
-  <testsuite name="BlueBot End-to-End Integration Tests" errors="0" failures="0" skipped="0" timestamp="2025-09-09T12:34:42" time="6.089" tests="14">
-    <testcase classname="BlueBot End-to-End Integration Tests AI Service Integration should handle AI chat with financial context" name="BlueBot End-to-End Integration Tests AI Service Integration should handle AI chat with financial context" time="0.1">
+    <testcase classname="Production MultiAI Service Provider Initialization should prioritize DeepSeek as primary provider" name="Production MultiAI Service Provider Initialization should prioritize DeepSeek as primary provider" time="0.002">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;deepseek&quot;
+Received: &quot;claude&quot;
+    at Object.&lt;anonymous&gt; (C:\Users\a258041\Downloads\BlueBot-main\tests\unit\services\MultiAI.test.ts:52:31)
+    at Promise.then.completed (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-circus\build\utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-circus\build\utils.js:231:10)
+    at _callCircusTest (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-circus\build\run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-circus\build\run.js:252:3)
+    at _runTestsForDescribeBlock (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-circus\build\run.js:126:9)
+    at _runTestsForDescribeBlock (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-circus\build\run.js:121:9)
+    at _runTestsForDescribeBlock (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-circus\build\run.js:121:9)
+    at run (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-circus\build\run.js:71:3)
+    at runAndTransformResultsToJestFormat (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+    at jestAdapter (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+    at runTestInternal (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-runner\build\runTest.js:367:16)
+    at runTest (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-runner\build\runTest.js:444:34)
+    at Object.worker (C:\Users\a258041\Downloads\BlueBot-main\node_modules\jest-runner\build\testWorker.js:106:12)</failure>
     </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests AI Service Integration should handle AI service fallbacks" name="BlueBot End-to-End Integration Tests AI Service Integration should handle AI service fallbacks" time="0.044">
+    <testcase classname="Production MultiAI Service Message Processing should successfully process message with DeepSeek" name="Production MultiAI Service Message Processing should successfully process message with DeepSeek" time="0.219">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;DeepSeek&quot;
+Received: &quot;Claude&quot;
+    at Object.&lt;anonymous&gt; (C:\Users\a258041\Downloads\BlueBot-main\tests\unit\services\MultiAI.test.ts:73:33)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
     </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Error Handling and Resilience should handle network failures gracefully" name="BlueBot End-to-End Integration Tests Error Handling and Resilience should handle network failures gracefully" time="0.003">
+    <testcase classname="Production MultiAI Service Message Processing should fallback to Gemini when DeepSeek fails" name="Production MultiAI Service Message Processing should fallback to Gemini when DeepSeek fails" time="0.01">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;Google Gemini&quot;
+Received: &quot;DeepSeek&quot;
+    at Object.&lt;anonymous&gt; (C:\Users\a258041\Downloads\BlueBot-main\tests\unit\services\MultiAI.test.ts:101:33)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
     </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Error Handling and Resilience should validate input parameters" name="BlueBot End-to-End Integration Tests Error Handling and Resilience should validate input parameters" time="0.001">
+    <testcase classname="Production MultiAI Service Message Processing should include South African context in responses" name="Production MultiAI Service Message Processing should include South African context in responses" time="0.002">
     </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Security and Validation should properly validate phone numbers" name="BlueBot End-to-End Integration Tests Security and Validation should properly validate phone numbers" time="0">
+    <testcase classname="Production MultiAI Service Conversation History should maintain conversation context" name="Production MultiAI Service Conversation History should maintain conversation context" time="0.002">
     </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Security and Validation should validate crypto addresses" name="BlueBot End-to-End Integration Tests Security and Validation should validate crypto addresses" time="0.001">
+    <testcase classname="Production MultiAI Service Error Handling should handle network errors gracefully" name="Production MultiAI Service Error Handling should handle network errors gracefully" time="0.155">
     </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Security and Validation should validate payment amounts" name="BlueBot End-to-End Integration Tests Security and Validation should validate payment amounts" time="0.004">
+    <testcase classname="Production MultiAI Service Error Handling should handle API rate limiting" name="Production MultiAI Service Error Handling should handle API rate limiting" time="0.5">
+      <failure>Error: expect(received).not.toBe(expected) // Object.is equality
+
+Expected: not &quot;error&quot;
+    at Object.&lt;anonymous&gt; (C:\Users\a258041\Downloads\BlueBot-main\tests\unit\services\MultiAI.test.ts:185:37)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
     </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Security and Validation should handle data encryption requirements" name="BlueBot End-to-End Integration Tests Security and Validation should handle data encryption requirements" time="0">
-    </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Performance and Scalability should handle multiple concurrent requests" name="BlueBot End-to-End Integration Tests Performance and Scalability should handle multiple concurrent requests" time="0.008">
-    </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Performance and Scalability should handle large data processing efficiently" name="BlueBot End-to-End Integration Tests Performance and Scalability should handle large data processing efficiently" time="0.002">
-    </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Configuration and Environment should validate required environment variables" name="BlueBot End-to-End Integration Tests Configuration and Environment should validate required environment variables" time="0">
-    </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Configuration and Environment should handle missing environment variables gracefully" name="BlueBot End-to-End Integration Tests Configuration and Environment should handle missing environment variables gracefully" time="0.001">
-    </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Data Validation and Types should validate transaction data structures" name="BlueBot End-to-End Integration Tests Data Validation and Types should validate transaction data structures" time="0">
-    </testcase>
-    <testcase classname="BlueBot End-to-End Integration Tests Data Validation and Types should validate user profile data" name="BlueBot End-to-End Integration Tests Data Validation and Types should validate user profile data" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="Production MultiAI Service" errors="0" failures="0" skipped="0" timestamp="2025-09-09T12:34:42" time="6.169" tests="20">
-    <testcase classname="Production MultiAI Service Provider Initialization should initialize all available providers with valid API keys" name="Production MultiAI Service Provider Initialization should initialize all available providers with valid API keys" time="0.013">
-    </testcase>
-    <testcase classname="Production MultiAI Service Provider Initialization should exclude providers without valid API keys" name="Production MultiAI Service Provider Initialization should exclude providers without valid API keys" time="0">
-    </testcase>
-    <testcase classname="Production MultiAI Service Provider Initialization should prioritize DeepSeek as primary provider" name="Production MultiAI Service Provider Initialization should prioritize DeepSeek as primary provider" time="0.001">
-    </testcase>
-    <testcase classname="Production MultiAI Service Message Processing should successfully process message with DeepSeek" name="Production MultiAI Service Message Processing should successfully process message with DeepSeek" time="0.098">
-    </testcase>
-    <testcase classname="Production MultiAI Service Message Processing should fallback to Gemini when DeepSeek fails" name="Production MultiAI Service Message Processing should fallback to Gemini when DeepSeek fails" time="0.036">
-    </testcase>
-    <testcase classname="Production MultiAI Service Message Processing should include South African context in responses" name="Production MultiAI Service Message Processing should include South African context in responses" time="0.003">
-    </testcase>
-    <testcase classname="Production MultiAI Service Conversation History should maintain conversation context" name="Production MultiAI Service Conversation History should maintain conversation context" time="0.004">
-    </testcase>
-    <testcase classname="Production MultiAI Service Error Handling should handle network errors gracefully" name="Production MultiAI Service Error Handling should handle network errors gracefully" time="0.032">
-    </testcase>
-    <testcase classname="Production MultiAI Service Error Handling should handle API rate limiting" name="Production MultiAI Service Error Handling should handle API rate limiting" time="0.037">
-    </testcase>
-    <testcase classname="Production MultiAI Service Error Handling should handle invalid API responses" name="Production MultiAI Service Error Handling should handle invalid API responses" time="0.002">
+    <testcase classname="Production MultiAI Service Error Handling should handle invalid API responses" name="Production MultiAI Service Error Handling should handle invalid API responses" time="0.013">
     </testcase>
     <testcase classname="Production MultiAI Service Performance should respond within acceptable time limits" name="Production MultiAI Service Performance should respond within acceptable time limits" time="0.002">
     </testcase>
-    <testcase classname="Production MultiAI Service Performance should handle concurrent requests" name="Production MultiAI Service Performance should handle concurrent requests" time="0.007">
+    <testcase classname="Production MultiAI Service Performance should handle concurrent requests" name="Production MultiAI Service Performance should handle concurrent requests" time="0.022">
     </testcase>
     <testcase classname="Production MultiAI Service Local Llama Integration should check local Llama availability" name="Production MultiAI Service Local Llama Integration should check local Llama availability" time="0.001">
     </testcase>
-    <testcase classname="Production MultiAI Service Local Llama Integration should fallback when local Llama is unavailable" name="Production MultiAI Service Local Llama Integration should fallback when local Llama is unavailable" time="0.006">
+    <testcase classname="Production MultiAI Service Local Llama Integration should fallback when local Llama is unavailable" name="Production MultiAI Service Local Llama Integration should fallback when local Llama is unavailable" time="0.01">
     </testcase>
-    <testcase classname="Production MultiAI Service Mock Provider (Development Only) should use mock provider only in development/test environment" name="Production MultiAI Service Mock Provider (Development Only) should use mock provider only in development/test environment" time="0.001">
+    <testcase classname="Production MultiAI Service Mock Provider (Development Only) should use mock provider only in development/test environment" name="Production MultiAI Service Mock Provider (Development Only) should use mock provider only in development/test environment" time="0">
     </testcase>
     <testcase classname="Production MultiAI Service Mock Provider (Development Only) should exclude mock provider in production" name="Production MultiAI Service Mock Provider (Development Only) should exclude mock provider in production" time="0">
     </testcase>
-    <testcase classname="Production MultiAI Service Provider Health Checks should verify provider connectivity" name="Production MultiAI Service Provider Health Checks should verify provider connectivity" time="0">
+    <testcase classname="Production MultiAI Service Provider Health Checks should verify provider connectivity" name="Production MultiAI Service Provider Health Checks should verify provider connectivity" time="0.001">
     </testcase>
-    <testcase classname="Production MultiAI Service Provider Health Checks should report unhealthy providers" name="Production MultiAI Service Provider Health Checks should report unhealthy providers" time="0.007">
+    <testcase classname="Production MultiAI Service Provider Health Checks should report unhealthy providers" name="Production MultiAI Service Provider Health Checks should report unhealthy providers" time="0.003">
     </testcase>
     <testcase classname="Production MultiAI Service Response Quality should provide relevant financial advice for South African context" name="Production MultiAI Service Response Quality should provide relevant financial advice for South African context" time="0.002">
     </testcase>
-    <testcase classname="Production MultiAI Service Response Quality should provide actionable suggestions" name="Production MultiAI Service Response Quality should provide actionable suggestions" time="0.002">
+    <testcase classname="Production MultiAI Service Response Quality should provide actionable suggestions" name="Production MultiAI Service Response Quality should provide actionable suggestions" time="0.001">
     </testcase>
   </testsuite>
-  <testsuite name="MultiAI Service" errors="0" failures="0" skipped="0" timestamp="2025-09-09T12:34:42" time="6.766" tests="5">
-    <testcase classname="MultiAI Service should be defined" name="MultiAI Service should be defined" time="0.009">
+  <testsuite name="BlueBot End-to-End Integration Tests" errors="0" failures="0" skipped="0" timestamp="2025-09-11T12:21:23" time="15.724" tests="14">
+    <testcase classname="BlueBot End-to-End Integration Tests AI Service Integration should handle AI chat with financial context" name="BlueBot End-to-End Integration Tests AI Service Integration should handle AI chat with financial context" time="0.271">
     </testcase>
-    <testcase classname="MultiAI Service should have required methods" name="MultiAI Service should have required methods" time="0.001">
+    <testcase classname="BlueBot End-to-End Integration Tests AI Service Integration should handle AI service fallbacks" name="BlueBot End-to-End Integration Tests AI Service Integration should handle AI service fallbacks" time="0.059">
     </testcase>
-    <testcase classname="MultiAI Service should return available providers" name="MultiAI Service should return available providers" time="0">
+    <testcase classname="BlueBot End-to-End Integration Tests Error Handling and Resilience should handle network failures gracefully" name="BlueBot End-to-End Integration Tests Error Handling and Resilience should handle network failures gracefully" time="0.002">
     </testcase>
-    <testcase classname="MultiAI Service should have a current provider" name="MultiAI Service should have a current provider" time="0.001">
+    <testcase classname="BlueBot End-to-End Integration Tests Error Handling and Resilience should validate input parameters" name="BlueBot End-to-End Integration Tests Error Handling and Resilience should validate input parameters" time="0">
     </testcase>
-    <testcase classname="MultiAI Service should send messages" name="MultiAI Service should send messages" time="0.726">
+    <testcase classname="BlueBot End-to-End Integration Tests Security and Validation should properly validate phone numbers" name="BlueBot End-to-End Integration Tests Security and Validation should properly validate phone numbers" time="0.001">
+    </testcase>
+    <testcase classname="BlueBot End-to-End Integration Tests Security and Validation should validate crypto addresses" name="BlueBot End-to-End Integration Tests Security and Validation should validate crypto addresses" time="0">
+    </testcase>
+    <testcase classname="BlueBot End-to-End Integration Tests Security and Validation should validate payment amounts" name="BlueBot End-to-End Integration Tests Security and Validation should validate payment amounts" time="0">
+    </testcase>
+    <testcase classname="BlueBot End-to-End Integration Tests Security and Validation should handle data encryption requirements" name="BlueBot End-to-End Integration Tests Security and Validation should handle data encryption requirements" time="0.001">
+    </testcase>
+    <testcase classname="BlueBot End-to-End Integration Tests Performance and Scalability should handle multiple concurrent requests" name="BlueBot End-to-End Integration Tests Performance and Scalability should handle multiple concurrent requests" time="0.009">
+    </testcase>
+    <testcase classname="BlueBot End-to-End Integration Tests Performance and Scalability should handle large data processing efficiently" name="BlueBot End-to-End Integration Tests Performance and Scalability should handle large data processing efficiently" time="0.002">
+    </testcase>
+    <testcase classname="BlueBot End-to-End Integration Tests Configuration and Environment should validate required environment variables" name="BlueBot End-to-End Integration Tests Configuration and Environment should validate required environment variables" time="0.001">
+    </testcase>
+    <testcase classname="BlueBot End-to-End Integration Tests Configuration and Environment should handle missing environment variables gracefully" name="BlueBot End-to-End Integration Tests Configuration and Environment should handle missing environment variables gracefully" time="0.001">
+    </testcase>
+    <testcase classname="BlueBot End-to-End Integration Tests Data Validation and Types should validate transaction data structures" name="BlueBot End-to-End Integration Tests Data Validation and Types should validate transaction data structures" time="0.001">
+    </testcase>
+    <testcase classname="BlueBot End-to-End Integration Tests Data Validation and Types should validate user profile data" name="BlueBot End-to-End Integration Tests Data Validation and Types should validate user profile data" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="MultiAI Service" errors="0" failures="0" skipped="0" timestamp="2025-09-11T12:21:23" time="17.096" tests="5">
+    <testcase classname="MultiAI Service should be defined" name="MultiAI Service should be defined" time="0.024">
+    </testcase>
+    <testcase classname="MultiAI Service should have required methods" name="MultiAI Service should have required methods" time="0.002">
+    </testcase>
+    <testcase classname="MultiAI Service should return available providers" name="MultiAI Service should return available providers" time="0.002">
+    </testcase>
+    <testcase classname="MultiAI Service should have a current provider" name="MultiAI Service should have a current provider" time="0.022">
+    </testcase>
+    <testcase classname="MultiAI Service should send messages" name="MultiAI Service should send messages" time="1.662">
     </testcase>
   </testsuite>
 </testsuites>

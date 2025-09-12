@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/config/theme';
 import { useRouter } from 'expo-router';
 import MultiAI from '../../services/MultiAI';
+import awsBedrockService from '../../services/AWSBedrockService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { standardBankService } from '../../services/StandardBankService';
 import { DEFAULT_TOTAL_BALANCE } from '@/config/app';
@@ -90,8 +91,13 @@ export default function AIChatScreen() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [speechResult, setSpeechResult] = useState('');
   const [voiceAvailable, setVoiceAvailable] = useState(false);
+  // Wake word state
+  const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
+  const [wakeActive, setWakeActive] = useState(false);
+  const wakeModeRef = useRef(false);
   // Settings state
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [useBedrock, setUseBedrock] = useState(true);
   const [availableVoices, setAvailableVoices] = useState<any[]>([]);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
   type VoicePreset = 'Balanced' | 'Warm' | 'Calm' | 'Narrator' | 'Energetic';
@@ -99,6 +105,8 @@ export default function AIChatScreen() {
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [temperature, setTemperature] = useState<number>(0.7);
   const [dataSharingConsent, setDataSharingConsent] = useState<boolean>(false);
+  const [realtimeReady, setRealtimeReady] = useState(false);
+  const [realtimeModel, setRealtimeModel] = useState<string | null>(null);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
@@ -188,6 +196,12 @@ export default function AIChatScreen() {
     }
 
     try {
+      // Suspend wake listening during active dictation
+      if (wakeModeRef.current) {
+        wakeModeRef.current = false;
+        setWakeActive(false);
+        try { await (Voice as any)?.stop?.(); } catch {}
+      }
       setIsListening(true);
       setSpeechResult('');
       if (typeof (Voice as any)?.start === 'function') {
@@ -208,10 +222,75 @@ export default function AIChatScreen() {
       }
       setIsListening(false);
       console.log('Stopped listening');
+      // If wake word is enabled, resume passive listening
+      if (wakeWordEnabled) {
+        setTimeout(() => {
+          if (!isListening) {
+            try { startWakeListening(); } catch {}
+          }
+        }, 300);
+      }
     } catch (error) {
       console.error('Error stopping voice recognition:', error);
       setIsListening(false);
     }
+  }, []);
+
+  // Microphone permission (Android) via dynamic import to avoid TS typings dependency
+  const ensureMicPermission = useCallback(async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') return true;
+    try {
+      const { PermissionsAndroid } = require('react-native');
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        {
+          title: 'Microphone Access',
+          message: 'BlueBot needs access to the microphone to listen for "Hi BlueBot" and voice messages.',
+          buttonPositive: 'OK',
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const isWakePhrase = (text: string) => {
+    const s = (text || '').toLowerCase().replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const patterns = [
+      'hi bluebot', 'hi blue bot',
+      'hey bluebot', 'hey blue bot',
+      'ok bluebot', 'okay bluebot', 'ok blue bot', 'okay blue bot'
+    ];
+    return patterns.some(p => s.includes(p));
+  };
+
+  const startWakeListening = useCallback(async () => {
+    if (!voiceAvailable) return;
+    const ok = await ensureMicPermission();
+    if (!ok) {
+      Alert.alert('Permission required', 'Microphone permission is required to use the wake word.');
+      setWakeWordEnabled(false);
+      return;
+    }
+    try {
+      wakeModeRef.current = true;
+      setWakeActive(true);
+      // Stop any active session first
+      try { await (Voice as any)?.stop?.(); } catch {}
+      await (Voice as any).start(selectedLanguage || 'en-US');
+      console.log('Wake word listening started');
+    } catch (e) {
+      console.warn('Failed to start wake listening:', e);
+      wakeModeRef.current = false;
+      setWakeActive(false);
+    }
+  }, [voiceAvailable, ensureMicPermission, selectedLanguage]);
+
+  const stopWakeListening = useCallback(async () => {
+    wakeModeRef.current = false;
+    setWakeActive(false);
+    try { await (Voice as any)?.stop?.(); } catch {}
   }, []);
 
   const selectedVoice = useMemo(() => {
@@ -304,6 +383,21 @@ export default function AIChatScreen() {
     }
   }, []);
 
+  const connectRealtime = useCallback(async () => {
+    try {
+      const res = await awsBedrockService.startRealtimeSession({ language: selectedLanguage || 'en-US' });
+      setRealtimeReady(!!res.connected);
+      setRealtimeModel(res.model);
+      if (!res.connected) {
+        Alert.alert('Realtime not connected', 'Configure EXPO_PUBLIC_BEDROCK_REALTIME_PROXY_URL to enable realtime voice relay.');
+      }
+    } catch (e) {
+      setRealtimeReady(false);
+      setRealtimeModel(null);
+      Alert.alert('Realtime error', 'Failed to initialize Bedrock Realtime.');
+    }
+  }, [selectedLanguage]);
+
   const resumeSpeaking = useCallback(async () => {
     try {
       await (Speech as any).resume?.();
@@ -353,6 +447,9 @@ export default function AIChatScreen() {
         await loadVoices();
         
         console.log('Voice recognition initialized');
+        if (wakeWordEnabled && !isListening && !wakeModeRef.current) {
+          startWakeListening();
+        }
       } catch (error) {
         console.warn('Voice recognition not available:', error);
         setVoiceAvailable(false);
@@ -369,6 +466,9 @@ export default function AIChatScreen() {
         sub = AppStateModule.addEventListener('change', (state: any) => {
           if (state === 'active') {
             loadVoices();
+            if (wakeWordEnabled && !isListening && !wakeModeRef.current) {
+              startWakeListening();
+            }
           }
         });
       }
@@ -377,7 +477,8 @@ export default function AIChatScreen() {
     // Cleanup voice listeners on unmount
     return () => {
       try { (Voice as any)?.removeAllListeners?.(); } catch {}
-      stopListening();
+  stopListening();
+  try { stopWakeListening(); } catch {}
       stopSpeaking();
   try { sub?.remove?.(); } catch {}
     };
@@ -387,6 +488,19 @@ export default function AIChatScreen() {
   const onSpeechResults = (e: { value?: string[] }) => {
     if (e.value && e.value.length > 0) {
       const spokenText = e.value[0];
+      if (wakeModeRef.current) {
+        if (isWakePhrase(spokenText)) {
+          console.log('Wake phrase detected');
+          (async () => {
+            try { await (Voice as any)?.stop?.(); } catch {}
+            wakeModeRef.current = false;
+            setWakeActive(false);
+            setTimeout(() => { startListening(); }, 350);
+          })();
+          return;
+        }
+        return; // ignore non-wake speech in wake mode
+      }
       setSpeechResult(spokenText);
       setInputText(spokenText);
       console.log('Speech result:', spokenText);
@@ -395,6 +509,11 @@ export default function AIChatScreen() {
 
   const onSpeechError = (e: any) => {
     console.warn('Speech recognition error:', e);
+    if (wakeModeRef.current) {
+      setWakeActive(false);
+      setTimeout(() => { if (wakeModeRef.current) startWakeListening(); }, 500);
+      return;
+    }
     setIsListening(false);
     Alert.alert('Voice Error', 'Could not understand speech. Please try again.');
   };
@@ -402,6 +521,9 @@ export default function AIChatScreen() {
   const onSpeechEnd = () => {
     setIsListening(false);
     console.log('Speech recognition ended');
+    if (wakeWordEnabled && !isListening && !wakeModeRef.current) {
+      setTimeout(() => { startWakeListening(); }, 400);
+    }
   };
 
   // Play a specific AI message via TTS
@@ -427,6 +549,8 @@ export default function AIChatScreen() {
   const savedTemp = await AsyncStorage.getItem('ai.temperature');
   const savedConsent = await AsyncStorage.getItem('ai.dataSharingConsent');
   const savedPreset = await AsyncStorage.getItem('ai.voicePreset');
+  const savedBedrock = await AsyncStorage.getItem('ai.useBedrock');
+  const savedWake = await AsyncStorage.getItem('ai.wakeWord');
         
         if (savedProvider) {
           setSelectedProvider(savedProvider);
@@ -447,6 +571,8 @@ export default function AIChatScreen() {
           if (!Number.isNaN(t)) setTemperature(Math.max(0, Math.min(1, t)));
         }
         if (savedConsent != null) setDataSharingConsent(savedConsent === 'true');
+  if (savedBedrock != null) setUseBedrock(savedBedrock === 'true');
+  if (savedWake != null) setWakeWordEnabled(savedWake === 'true');
       } catch (error) {
         console.log('Failed to load saved settings:', error);
       }
@@ -459,6 +585,19 @@ export default function AIChatScreen() {
   useEffect(() => { AsyncStorage.setItem('ai.dataSharingConsent', String(dataSharingConsent)); }, [dataSharingConsent]);
   useEffect(() => { AsyncStorage.setItem('ai.voicePreset', voicePreset); }, [voicePreset]);
   useEffect(() => { AsyncStorage.setItem('ai.language', selectedLanguage ?? ''); }, [selectedLanguage]);
+  useEffect(() => { AsyncStorage.setItem('ai.useBedrock', String(useBedrock)); }, [useBedrock]);
+  useEffect(() => { AsyncStorage.setItem('ai.wakeWord', String(wakeWordEnabled)); }, [wakeWordEnabled]);
+
+  // React to wake word toggle changes
+  useEffect(() => {
+    (async () => {
+      if (wakeWordEnabled) {
+        await startWakeListening();
+      } else {
+        await stopWakeListening();
+      }
+    })();
+  }, [wakeWordEnabled]);
 
   // Auto-select a more natural-sounding English voice if none selected or invalid
   const pickBestVoice = useCallback((voices: any[]) => {
@@ -609,21 +748,43 @@ export default function AIChatScreen() {
         MultiAI.preselectProvider?.(selectedAgent.id as any, message);
       } catch {}
 
-      // Get AI response
-      const response = await MultiAI.sendMessage(
-        message, 
-        [], // conversation history - we could maintain this in state
-        { 
-          ...context,
-          ...(dataSharingConsent ? {} : { userName: undefined }),
-          dataSharingConsent,
-        } as any,
-        { agent: (['pepper','penny','sable','zuri','kora','nova'] as string[]).includes(selectedAgent.id) ? (selectedAgent.id as any) : undefined, temperature }
-      );
+      // Get AI response (route via Bedrock text chat when enabled)
+      let aiText = '';
+      let providerTag = '';
+      if (useBedrock) {
+        const userId = (currentUser as any)?.id || (userData as any)?.id || 'anonymous';
+        const bedrockMessages = [
+          { role: 'system', content: `You are ${selectedAgent.name}, a helpful South African financial assistant. Be concise, factual, and friendly.` },
+          { role: 'user', content: message }
+        ] as any;
+        try {
+          const br = await awsBedrockService.chat(bedrockMessages as any, userId, 'claude');
+          aiText = br.content || '';
+          providerTag = 'bedrock';
+        } catch (e) {
+          console.warn('Bedrock chat failed, falling back to MultiAI:', e);
+        }
+      }
+
+      let response: any = null;
+      if (!aiText) {
+        response = await MultiAI.sendMessage(
+          message, 
+          [], // conversation history - we could maintain this in state
+          { 
+            ...context,
+            ...(dataSharingConsent ? {} : { userName: undefined }),
+            dataSharingConsent,
+          } as any,
+          { agent: (['pepper','penny','sable','zuri','kora','nova'] as string[]).includes(selectedAgent.id) ? (selectedAgent.id as any) : undefined, temperature }
+        );
+        aiText = response.message;
+        providerTag = (response?.metadata?.provider as string) || 'multi';
+      }
       
       const aiMessage: Message = {
         id: Date.now().toString() + '-ai',
-        text: response.message,
+        text: aiText,
         user: false,
         timestamp: new Date(),
         type: 'normal',
@@ -633,9 +794,9 @@ export default function AIChatScreen() {
       setMessages(prev => [...prev, aiMessage]);
       
       // Start speaking the AI response
-      if (voiceEnabled && response.message) {
+    if (voiceEnabled && aiText) {
         setTimeout(() => {
-          startSpeaking(response.message);
+      startSpeaking(aiText);
         }, 500); // Small delay to ensure message is displayed first
       }
       
@@ -702,7 +863,7 @@ export default function AIChatScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [inputText, selectedAgent, selectedProvider, chatContext, userData, currentUser, isSpeaking, stopSpeaking, voiceEnabled, startSpeaking, temperature, dataSharingConsent]);
+  }, [inputText, selectedAgent, selectedProvider, chatContext, userData, currentUser, isSpeaking, stopSpeaking, voiceEnabled, startSpeaking, temperature, dataSharingConsent, useBedrock]);
 
   // Quick action handlers
   const handleQuickAction = useCallback((actionText: string) => {
@@ -988,6 +1149,16 @@ export default function AIChatScreen() {
                   <Text style={styles.agentSpecialty}>Thinking...</Text>
                 </View>
               </View>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Wake Word</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={styles.sectionHelp}>Say “Hi BlueBot” to start voice capture</Text>
+                  <Switch value={wakeWordEnabled} onValueChange={setWakeWordEnabled} />
+                </View>
+                {wakeWordEnabled && (
+                  <Text style={[styles.sectionHelp, { marginTop: 6 }]}>Listening passively{wakeActive ? '…' : ''}. This may use additional battery.</Text>
+                )}
+              </View>
               <View style={[styles.messageBubble, styles.aiBubble, styles.loadingBubble]}>
                 <View style={styles.typingIndicator}>
                   <View style={[styles.typingDot, { animationDelay: '0ms' }]} />
@@ -1117,6 +1288,19 @@ export default function AIChatScreen() {
             </View>
             <ScrollView style={{ maxHeight: 420 }}>
               <View style={styles.section}>
+                <Text style={styles.sectionTitle}>AI Engine</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={styles.sectionHelp}>Use AWS Bedrock for text chat</Text>
+                  <Switch value={useBedrock} onValueChange={setUseBedrock} />
+                </View>
+                {!useBedrock && (
+                  <Text style={[styles.sectionHelp, { marginTop: 6 }]}>Using MultiAI routing (DeepSeek/Gemini/OpenAI) with fallbacks.</Text>
+                )}
+                {useBedrock && (
+                  <Text style={[styles.sectionHelp, { marginTop: 6 }]}>Using Bedrock (Claude via AWS) for responses.</Text>
+                )}
+              </View>
+              <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Language</Text>
                 <Text style={styles.sectionHelp}>Prefer South African languages or System default</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
@@ -1140,6 +1324,16 @@ export default function AIChatScreen() {
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
+              </View>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Realtime Voice (Preview)</Text>
+                <Text style={styles.sectionHelp}>Low-latency speech-to-speech via AWS Bedrock Realtime.</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+                  <Text style={styles.sectionHelp}>Status: {realtimeReady ? `Connected (${realtimeModel || 'model'})` : 'Not connected'}</Text>
+                  <TouchableOpacity style={[styles.presetChip, { alignSelf: 'flex-start' }]} onPress={connectRealtime}>
+                    <Text style={[styles.presetChipText, { color: theme.colors.text }]}>{realtimeReady ? 'Reconnect' : 'Connect'}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
               <View style={styles.section}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
