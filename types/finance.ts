@@ -55,33 +55,7 @@ export interface UserFinancialProfile {
   lastUpdated: string;
 }
 
-export interface Stokvel {
-  id: string;
-  name: string;
-  description: string;
-  totalMembers: number;
-  currentMembers: string[];
-  totalAmount: number;
-  contributionAmount: number;
-  contributionFrequency: 'weekly' | 'monthly';
-  payoutSchedule: string;
-  isActive: boolean;
-  createdAt: string;
-  rules: string[];
-}
 
-export interface WalletTransaction {
-  id: string;
-  type: 'send' | 'receive' | 'topup' | 'withdrawal';
-  amount: number;
-  fee: number;
-  recipientId?: string;
-  recipientName?: string;
-  description: string;
-  status: 'pending' | 'completed' | 'failed';
-  timestamp: string;
-  reference: string;
-}
 
 export interface BankAccount {
   id: string;
